@@ -19,7 +19,7 @@ app.use(
   cors({
     origin:
       process.env.CORS_ORIGIN?.split(",") ?? [
-        "http://localhost:5173",
+        "https://thoratech-crm-frontend.vercel.app/",
       ],
     credentials: true,
   })
