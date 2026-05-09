@@ -6,7 +6,7 @@ import app from "./app";
 
 const { PORT = 4001, MONGO_URI } = process.env;
 
-if (!MONGO_URI) {
+if (!MONGO_URI) { 
   console.error("MONGO_URI is not set");
   process.exit(1);
 }
