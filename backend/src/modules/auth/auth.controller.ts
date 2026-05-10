@@ -16,10 +16,12 @@ import { signToken } from "../../utils/jwt";
 
 import type { AuthRequest } from "../../middleware/auth.middleware";
 import { PASSWORD_COMPLEXITY } from "../../constants/auth.constants";
+const isProduction = process.env.NODE_ENV === "production";
+
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  secure: isProduction,
+  sameSite: (isProduction ? "none" : "strict") as "none" | "strict",
   maxAge: COOKIE_MAX_AGE_MS,
 };
 
@@ -151,11 +153,7 @@ export const logout = async (
   req: Request,
   res: Response
 ) => {
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  res.clearCookie("accessToken", cookieOptions);
 
   return res.status(200).json({
     success: true,
