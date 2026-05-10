@@ -11,17 +11,17 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
-const startServer = async () => {
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("MongoDB Connected"); 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  } 
-}; 
+mongoose.connect(MONGO_URI).then(() => {
+  console.log("MongoDB Connected");
+}).catch((error) => {
+  console.error("Failed to connect to MongoDB:", error);
+  process.exit(1);
+});
 
-startServer();
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;
