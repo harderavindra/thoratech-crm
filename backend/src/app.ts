@@ -21,7 +21,7 @@ app.use(
   cors({
     origin:
       process.env.CORS_ORIGIN?.split(",") ?? [
-        "https://thoratech-crm-frontend.vercel.app/",
+        "https://thoratech-crm-frontend.vercel.app",
       ],
     credentials: true,
   })
