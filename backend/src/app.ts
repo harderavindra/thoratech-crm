@@ -17,15 +17,16 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin:
-      process.env.CORS_ORIGIN?.split(",") ?? [
-        "https://thoratech-crm-frontend.vercel.app",
-      ],
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin:
+    process.env.CORS_ORIGIN?.split(",") ?? [
+      "https://thoratech-crm-frontend.vercel.app",
+    ],
+  credentials: true,
+};
+
+app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 

@@ -5,18 +5,16 @@ import mongoose from "mongoose";
 import app from "./app";
 
 const { PORT = 4001, MONGO_URI } = process.env;
- 
-if (!MONGO_URI) { 
-  console.error("MONGO_URI is not set");
-  process.exit(1);
-}
 
-mongoose.connect(MONGO_URI).then(() => {
-  console.log("MongoDB Connected");
-}).catch((error) => {
-  console.error("Failed to connect to MongoDB:", error);
-  process.exit(1);
-});
+if (!MONGO_URI) {
+  console.error("MONGO_URI is not set");
+} else {
+  mongoose.connect(MONGO_URI).then(() => {
+    console.log("MongoDB Connected");
+  }).catch((error) => {
+    console.error("Failed to connect to MongoDB:", error);
+  });
+}
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
