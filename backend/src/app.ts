@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import authRoutes from "./modules/auth/auth.route";
+import users from "./modules/user/user.route";
 
 const app = express();
 
@@ -43,11 +45,21 @@ app.get(`${API_PREFIX}/health`, (_, res) => {
   });
 });
 
+app.use(
+  `${API_PREFIX}/auth`,
+  authRoutes
+);
+app.use(
+  `${API_PREFIX}/users`,
+  users
+);
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route Not Found",
   });
 });
+
+
 
 export default app;
