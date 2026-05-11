@@ -8,6 +8,24 @@ import type { AuthRequest } from "../../middleware/auth.middleware";
 
 import { escapeRegex } from "../../utils/escape-regex";
 
+// Single source of truth for role-based creation/management permissions.
+// canCreate: roles this actor may assign when creating or re-assigning.
+// canManage: roles this actor may edit or delete.
+const ROLE_PERMISSIONS: Record<string, { canCreate: string[]; canManage: string[] }> = {
+  SUPER_ADMIN: {
+    canCreate: ["SUPER_ADMIN", "ADMIN", "TEAM_LEAD", "AGENT", "QA"],
+    canManage: ["SUPER_ADMIN", "ADMIN", "TEAM_LEAD", "AGENT", "QA"],
+  },
+  ADMIN: {
+    canCreate: ["TEAM_LEAD", "AGENT", "QA"],
+    canManage: ["TEAM_LEAD", "AGENT", "QA"],
+  },
+  TEAM_LEAD: {
+    canCreate: ["AGENT", "QA"],
+    canManage: ["AGENT", "QA"],
+  },
+};
+
 const usersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 
@@ -107,10 +125,13 @@ export const getUsers = async (
                 fullName: 1,
 
                 email: 1,
+                phone: 1,
 
                 role: 1,
 
                 status: 1,
+
+                createdBy: 1,
 
                 createdAt: 1,
               },
@@ -186,6 +207,15 @@ export const createUser = async (
 
     const { fullName, email, phone, password, role, status } = parsed.data;
 
+    const actorRole = req.user!.role;
+    const allowed = ROLE_PERMISSIONS[actorRole]?.canCreate ?? [];
+    if (!allowed.includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: `You are not permitted to create a user with role ${role}`,
+      });
+    }
+
     const existingUser = await User.findOne({
       email: email.toLowerCase(),
     });
@@ -216,6 +246,8 @@ export const createUser = async (
       role,
 
       status: status || "active",
+
+      createdBy: req.user!.id,
     });
 
     return res.status(201).json({
@@ -255,8 +287,6 @@ export const updateUser = async (
     const updateUserSchema = z.object({
       fullName: z.string().trim().min(2).max(100).optional(),
 
-      email: z.string().trim().email().optional(),
-
       phone: z.string().trim().min(5).max(20).optional(),
 
       role: z.enum(["SUPER_ADMIN", "ADMIN", "TEAM_LEAD", "AGENT", "QA"]).optional(),
@@ -276,17 +306,42 @@ export const updateUser = async (
       });
     }
 
-    if (parsed.data.email) {
-      const conflict = await User.findOne({
-        email: parsed.data.email.toLowerCase(),
-        _id: { $ne: req.params.id },
-      });
+    const actorRole = req.user!.role;
+    const actorId   = req.user!.id;
+    const perms     = ROLE_PERMISSIONS[actorRole];
 
-      if (conflict) {
-        return res.status(409).json({ success: false, message: "Email already in use" });
+    const targetUser = await User.findById(req.params.id).select("role createdBy");
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Prevent deactivating super admin
+    if (targetUser.role === "SUPER_ADMIN" && parsed.data.status === "inactive") {
+      return res.status(403).json({ success: false, message: "Super admin cannot be deactivated" });
+    }
+
+    // Actor must be able to manage the target's current role
+    if (!perms?.canManage.includes(targetUser.role)) {
+      return res.status(403).json({ success: false, message: "You are not permitted to manage this user" });
+    }
+
+    // TEAM_LEAD: restricted to own-created users and status-only changes
+    if (actorRole === "TEAM_LEAD") {
+      if (String(targetUser.createdBy) !== actorId) {
+        return res.status(403).json({ success: false, message: "You can only manage users you created" });
       }
+      const nonStatusKeys = Object.keys(parsed.data).filter((k) => k !== "status");
+      if (nonStatusKeys.length > 0) {
+        return res.status(403).json({ success: false, message: "Team leads can only change user status" });
+      }
+    }
 
-      parsed.data.email = parsed.data.email.toLowerCase();
+    // Role assignment: new role must be within actor's creation scope
+    if (parsed.data.role !== undefined && !perms?.canCreate.includes(parsed.data.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `You are not permitted to assign role ${parsed.data.role}`,
+      });
     }
 
     const user = await User.findByIdAndUpdate(
@@ -310,3 +365,82 @@ export const updateUser = async (
     next(error);
   }
 };
+
+export const getUserById =
+  async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const user =
+        await User.findById(
+          req.params.id
+        ).select(
+          `
+          fullName
+          username
+          email
+          phone
+          role
+          status
+          createdBy
+          dateOfJoining
+          createdAt
+          updatedAt
+          lastLogin
+          passwordChangedAt
+          loginAttempts
+          lockoutUntil
+        `
+        );
+
+      if (!user) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "User not found",
+          });
+      }
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          data: {
+            user,
+          },
+        });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  export const deleteUser =
+  async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      if (user.role === "SUPER_ADMIN") {
+        return res.status(403).json({ success: false, message: "Super admin cannot be deleted" });
+      }
+
+      await user.deleteOne();
+
+      return res.status(200).json({ success: true, message: "User deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  };

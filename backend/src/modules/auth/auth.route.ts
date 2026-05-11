@@ -1,6 +1,6 @@
 import express from "express";
 
-import { changePassword, login, me } from "./auth.controller";
+import { changePassword, login, me, updateMe } from "./auth.controller";
 import { logout } from "./auth.controller";
 import { protect } from "../../middleware/auth.middleware";
 
@@ -23,6 +23,12 @@ router.get(
   "/me",
   protect,
   me
+);
+
+router.patch(
+  "/me",
+  protect,
+  updateMe
 );
 
 router.post(

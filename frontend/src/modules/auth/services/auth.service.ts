@@ -34,3 +34,9 @@ export const logoutUser =
 
     return response.data;
   };
+
+export const updateProfile = (payload: { fullName?: string; phone?: string }) =>
+  api.patch("/auth/me", payload).then((r) => r.data);
+
+export const changePassword = (payload: { currentPassword: string; newPassword: string }) =>
+  api.post("/auth/change-password", payload).then((r) => r.data);

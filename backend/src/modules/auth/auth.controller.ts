@@ -4,6 +4,8 @@ import type {
   NextFunction,
 } from "express";
 
+import { z } from "zod";
+
 import { User } from "../user/user.model";
 
 import {
@@ -30,6 +32,7 @@ const safeUser = (user: any) => ({
   username: user.username,
   fullName: user.fullName,
   email: user.email,
+  phone: user.phone,
   role: user.role,
   status: user.status,
 });
@@ -183,6 +186,46 @@ export const me = async (
       data: {
         user: safeUser(user),
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateMe = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const updateMeSchema = z.object({
+      fullName: z.string().trim().min(2).max(100).optional(),
+      phone: z.string().trim().min(5).max(20).optional(),
+    });
+
+    const parsed = updateMeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user!.id,
+      { $set: parsed.data },
+      { new: true, runValidators: true }
+    ).select("fullName email phone role status username");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: { user: safeUser(user) },
     });
   } catch (error) {
     next(error);

@@ -51,12 +51,14 @@ export const AdminLayout = () => {
               <LayoutDashboard />
             </Link>
 
-            <Link
-              to="/users"
-              className="block rounded px-3 py-2 hover:bg-white/10"
-            >
-              <Users />
-            </Link>
+            {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN") && (
+              <Link
+                to="/users"
+                className="block rounded px-3 py-2 hover:bg-white/10"
+              >
+                <Users />
+              </Link>
+            )}
 
             <Link
               to="/profile"

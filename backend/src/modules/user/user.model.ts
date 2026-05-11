@@ -24,6 +24,8 @@ export interface IUser extends Document {
 
   status: "active" | "inactive";
 
+  createdBy?: mongoose.Types.ObjectId | null;
+
   dateOfJoining?: Date;
 
   lastLogin?: Date;
@@ -92,6 +94,8 @@ const userSchema = new Schema<IUser>(
     },
 
     status: { type: String, enum: ["active", "inactive"], default: "active" },
+
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
     dateOfJoining: { type: Date },
 

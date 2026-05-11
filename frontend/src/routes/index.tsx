@@ -12,6 +12,7 @@ import { AdminLayout } from "../layouts/admin.layout";
 
 import { ProtectedRoute } from "../middleware/protected.route";
 import { PublicRoute } from "../middleware/public.route";
+import { RoleRoute } from "../middleware/role.route";
 
 export const router =
   createBrowserRouter([
@@ -47,8 +48,11 @@ export const router =
 
         {
           path: "users",
-          element:
-            <UsersPage />,
+          element: (
+            <RoleRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+              <UsersPage />
+            </RoleRoute>
+          ),
         },
       ],
     },

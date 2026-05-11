@@ -1,366 +1,234 @@
 import { useState } from "react";
+import {
+  Headphones, Plus, ShieldCheck, User, UserCog,
+  BadgeCheck, ChevronLeft, ChevronRight, UserRoundCheck,
+} from "lucide-react";
+
 import { AddUserForm } from "../../../components/add-user-form";
 import { useUsers } from "../hooks/use-users";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-
-import {
-  Headphones,
-  Plus,
-  ShieldCheck,
-  User,
-  UserCog,
-  BadgeCheck,
-  ChevronLeft,
-  ChevronRight,
-  UserRoundCheck,
-  X,
-  Mail,
-  Phone,
-} from "lucide-react";
-
 import { CompactCard } from "../../../components/user-card";
-import Avatar, { type AvatarColor } from "../../../components/ui/avatar";
+import { useAuthStore } from "../../auth/store/auth.store";
 
-type ApiUser = {
-  _id: string;
-  fullName: string;
-  email: string;
-  phone:string;
-  role: string;
-  status: "active" | "away" | "offline";
-  createdAt: string;
-  initials?: string;
 
-  avatarColor?: AvatarColor;
-};
+// ← single source of truth for all user types
+import type { ApiUser, UserRole, UserStatus } from "../../../types/user.types";
+import { UserViewPanel } from "../../../components/user-viewpanel";
+
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
+
+type Modal = "add" | "edit" | "view" | null;
+
+const toTitleCase = (str: string) =>
+  str.toLowerCase().split(/[_\s-]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+const getInitials = (name: string) =>
+  name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+const ROLES: { value: UserRole; icon: React.ReactNode }[] = [
+  { value: "SUPER_ADMIN", icon: <ShieldCheck size={18} /> },
+  { value: "ADMIN",       icon: <UserCog    size={18} /> },
+  { value: "TEAM_LEAD",   icon: <User       size={18} /> },
+  { value: "AGENT",       icon: <Headphones size={18} /> },
+  { value: "QA",          icon: <BadgeCheck size={18} /> },
+];
+
+// ─────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────
 
 export const UsersPage = () => {
-  const [page, setPage] = useState(1);
-
+  const [page,   setPage]   = useState(1);
   const [search, setSearch] = useState("");
+  const [role,   setRole]   = useState<UserRole | "">("");
+  const [status, setStatus] = useState<UserStatus | "">("");
 
-  const [role, setRole] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [status, setStatus] = useState("");
+  const currentUser = useAuthStore((s) => s.user);
+  const actorRole   = currentUser?.role;
+  const canCreate   = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN" || actorRole === "TEAM_LEAD";
+  const canEdit     = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
 
-  const [editModelView, setEditModelView] = useState(false);
-
-  const [viewModelStatus, setViewModelStatus] = useState(false);
-
-  const [addModelStatus, setAddModelStatus] = useState(false);
-
+  const [modal,        setModal]        = useState<Modal>(null);
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
 
-  const { data, isLoading } = useUsers({
-    page,
-    limit: 10,
-    search,
-    role,
-    status,
-  });
+  const { data, isLoading ,refetch} = useUsers({ page, limit: 10, search, role, status ,refreshKey});
 
-  const users = data?.data?.users || [];
+  const users: ApiUser[] = data?.data?.users      ?? [];
+  const pagination       = data?.data?.pagination;
 
-  const pagination = data?.data?.pagination;
+  // ── Helpers ───────────────────────────────────────────────
 
-  const convertCapitalCase = (str: string) => {
-    return str
-      .toLowerCase()
-      .split(/[_\s-]+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const findUser = (id: string) => users.find((u) => u._id === id) ?? null;
 
-  const roles = [
-    {
-      value: "SUPER_ADMIN",
-      icon: <ShieldCheck size={18} />,
-    },
-
-    {
-      value: "ADMIN",
-      icon: <UserCog size={18} />,
-    },
-
-    {
-      value: "TEAM_LEAD",
-      icon: <User size={18} />,
-    },
-
-    {
-      value: "AGENT",
-      icon: <Headphones size={18} />,
-    },
-
-    {
-      value: "QA",
-      icon: <BadgeCheck size={18} />,
-    },
-  ];
-
-  const openAddModal = () => {
-    closeAllModals();
+  const openAdd = () => {
     setSelectedUser(null);
-
-    setAddModelStatus(true);
+    setModal("add");
   };
 
-  const openEditModal = (userId: string) => {
-    closeAllModals();
-    const user = users.find((u: ApiUser) => u._id === userId);
-
+  const openView = (id: string) => {
+    const user = findUser(id);
     if (!user) return;
-
     setSelectedUser(user);
-
-    setEditModelView(true);
+    setModal("view");
   };
 
-  const openViewModal = (userId: string) => {
-    closeAllModals();
-    const user = users.find((u: ApiUser) => u._id === userId);
-
+  const openEdit = (id: string) => {
+    const user = findUser(id);
     if (!user) return;
-
-    setSelectedUser({
-      ...user,
-
-      initials: user.fullName
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase(),
-
-      avatarColor: "blue",
-    });
-
-    setViewModelStatus(true);
+    setSelectedUser(user);
+    setModal("edit");
   };
 
-  const closeAllModals = () => {
-    setAddModelStatus(false);
-
-    setEditModelView(false);
-
-    setViewModelStatus(false);
-
+  const closeModal = () => {
+    setModal(null);
     setSelectedUser(null);
   };
 
-  const formattedUsers = users.map((user: ApiUser) => ({
-    id: user._id,
+  const toggleRole = (r: UserRole) => {
+    setPage(1);
+    setRole((prev) => (prev === r ? "" : r));
+  };
 
-    name: user.fullName,
+  const toggleStatus = (s: UserStatus) => {
+    setPage(1);
+    setStatus((prev) => (prev === s ? "" : s));
+  };
 
-    role: user.role,
-
-    initials: user.fullName
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase(),
-
-    status: user.status,
-
+  const formattedUsers = users.map((u) => ({
+    id:          u._id,
+    name:        u.fullName,
+    role:        u.role,
+    initials:    getInitials(u.fullName),
+    status:      u.status as "active" | "away" | "offline",
     avatarColor: "blue" as const,
-
-    openEditModal,
-
-    openViewModal,
   }));
+const handleRefresh = () => setRefreshKey((k) => k + 1);
+
+  // ─────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col flex-1 ">
+    <div className="flex flex-col flex-1">
+
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Users</h1>
-
-        <Button iconOnly variant="primary" onClick={openAddModal}>
-          <Plus />
-        </Button>
+        {canCreate && (
+          <Button iconOnly variant="primary" onClick={openAdd} aria-label="Add user">
+            <Plus />
+          </Button>
+        )}
       </div>
 
-      <div className="flex gap-1 flex-1  ">
-        {/* Sidebar Filters */}
-        <div className="flex flex-col gap-4 rounded-xl bg-white p-4 md:grid-cols-4">
-          <div className="relative md:col-span-2">
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => {
-                setPage(1);
+      <div className="flex gap-1 flex-1">
 
-                setSearch(e.target.value);
-              }}
-              className="pl-10"
-            />
-          </div>
+        {/* ── Sidebar filters ── */}
+        <div className="flex flex-col gap-4 rounded-xl bg-white p-4">
+          <Input
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+          />
 
           <label className="block text-sm text-gray-400">Role</label>
-
           <div className="flex flex-col items-center gap-2">
-            {roles.map((r) => (
+            {ROLES.map((r) => (
               <Button
                 key={r.value}
                 className="w-full items-center justify-start text-left"
                 variant={role === r.value ? "secondary" : "ghost"}
                 iconLeft={r.icon}
-                onClick={() => {
-                 setPage(1);
-  setRole((prev) => prev === r.value ? "" : r.value);
-                }}
+                onClick={() => toggleRole(r.value)}
               >
-                <span className="ml-2">{convertCapitalCase(r.value)}</span>
+                <span className="ml-2">{toTitleCase(r.value)}</span>
               </Button>
             ))}
           </div>
 
           <label className="block text-sm text-gray-400">Status</label>
-
           <Button
             className="w-full items-center justify-start text-left"
             variant={status === "active" ? "secondary" : "ghost"}
             iconLeft={<UserRoundCheck size={18} />}
-            onClick={() => {
-             setPage(1);
-  setStatus((prev) => prev === "active" ? "" : "active");
-            }}
+            onClick={() => toggleStatus("active")}
           >
             <span className="ml-2">Active</span>
           </Button>
-
           <Button
             className="w-full items-center justify-start text-left"
             variant={status === "inactive" ? "secondary" : "ghost"}
             iconLeft={<UserRoundCheck size={18} />}
-            onClick={() => {
-               setPage(1);
-  setStatus((prev) => prev === "inactive" ? "" : "inactive");
-            }}
+            onClick={() => toggleStatus("inactive")}
           >
             <span className="ml-2">Inactive</span>
           </Button>
         </div>
 
-        {/* User List */}
-        <div className="min-w-xs overflow-hidden rounded-2xl bg-white ">
-          {isLoading && (
+        {/* ── User list ── */}
+        <div className="min-w-xs overflow-hidden rounded-2xl bg-white">
+          {isLoading ? (
             <div className="flex min-h-[200px] items-center justify-center">
-              <p className="px-4 py-6 text-center">Loading...</p>
+              <p className="px-4 py-6 text-center text-gray-400">Loading...</p>
             </div>
-          )}
-
-          {!isLoading && (
-            <CompactCard title="Team members" users={formattedUsers} />
-          )}
-
-          {/* Pagination */}
-          <div className="mt-5 flex items-center justify-between px-5">
-            <p className="text-xs text-gray-400">
-              Page {pagination?.page} of {pagination?.totalPages}
-            </p>
-
-            <div className="flex gap-2">
-              <Button
-                className="w-auto px-4 py-2"
-                disabled={page === 1}
-                size="sm"
-                variant="secondary"
-                iconOnly
-                iconLeft={<ChevronLeft size={12} />}
-                onClick={() => setPage((prev) => prev - 1)}
-              />
-
-              <Button
-                disabled={page === pagination?.totalPages}
-                size="sm"
-                variant="secondary"
-                iconOnly
-                iconLeft={<ChevronRight size={12} />}
-                onClick={() => setPage((prev) => prev + 1)}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="w-full   ">
-          {/* Add User */}
-          {addModelStatus && (
-            <AddUserForm mode="add" onClose={closeAllModals} />
-          )}
-
-          {/* Edit User */}
-          {editModelView && selectedUser && (
-            <AddUserForm
-              mode="edit"
-              user={selectedUser}
-              onClose={closeAllModals}
+          ) : (
+            <CompactCard
+              title="Team members"
+              users={formattedUsers}
+              onView={openView}
+              onEdit={canEdit ? openEdit : undefined}
             />
           )}
 
-          {/* View User */}
-          {viewModelStatus && selectedUser && (
-            <div className="w-full rounded-2xl bg-white p-12 relative h-full">
-              <Button
-                iconOnly
-                iconLeft={<X size={16} />}
-                size="sm"
-                variant="primary"
-                onClick={closeAllModals}
-                className="absolute right-5 top-5"
-              ></Button>
-
-              <div className="space-y-4 text-base">
-                <Avatar
-                  size="xl"
-                  initials={selectedUser.initials}
-                  AvatarColor={selectedUser?.avatarColor}
-                />
-
-                <div>
-                  <p className="text-2xl font-bold">{selectedUser.fullName}</p>
-                </div>
-
-                <div>
-                  <p className="flex gap-3 items-center">
-                    <Mail size={16} /> {selectedUser.email}
-                  </p>
-                </div>
-                  <div>
-                  <p className="flex gap-3 items-center">
-                    <Phone size={16} /> {selectedUser.phone}
-                  </p>
-                </div>
-                <div>
-                   <p className="flex gap-3 items-center">
-                    <UserCog size={16} /> {
-                    convertCapitalCase(selectedUser.role)}
-                  </p>
-                </div>
-
-                <div>
-                
-                 <p className="flex gap-3 items-center">
-                    <UserRoundCheck size={16} /> {
-                    convertCapitalCase(selectedUser.status)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-3">
+          {pagination && (
+            <div className="mt-5 flex items-center justify-between px-5">
+              <p className="text-xs text-gray-400">
+                Page {pagination.page} of {pagination.totalPages}
+              </p>
+              <div className="flex gap-2">
                 <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setViewModelStatus(false);
-
-                    setEditModelView(true);
-                  }}
-                >
-                  Edit User
-                </Button>
+                  size="sm" variant="secondary" iconOnly
+                  iconLeft={<ChevronLeft size={12} />}
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                />
+                <Button
+                  size="sm" variant="secondary" iconOnly
+                  iconLeft={<ChevronRight size={12} />}
+                  disabled={page === pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                />
               </div>
             </div>
           )}
         </div>
+
+        {/* ── Right panel ── */}
+        <div className="w-full">
+          {modal === "add" && (
+            <AddUserForm mode="add" onClose={closeModal} />
+          )}
+
+          {modal === "edit" && selectedUser && (
+            <AddUserForm mode="edit" user={selectedUser} onClose={closeModal} />
+          )}
+ {modal === "view" && selectedUser && (
+            <UserViewPanel
+              listUser={selectedUser}
+              onClose={closeModal}
+              onEdit={handleRefresh}
+               onRefresh={handleRefresh}
+              onDeleted={handleRefresh}
+            />
+          )}
+      
+        </div>
+
       </div>
     </div>
   );

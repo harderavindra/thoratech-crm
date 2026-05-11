@@ -6,9 +6,10 @@ import { Edit } from "lucide-react";
 // Types
 // ─────────────────────────────────────────────────────────────
 
-export type UserStatus = "active" | "away" | "offline";
-export type UserRole   = "admin" | "member" | "guest";
+export type UserStatus  = "active" | "away" | "offline" | "inactive";
+export type UserRole    = "admin" | "member" | "guest" | (string & {});
 export type CardVariant = "default" | "stats" | "compact" | "detailed";
+export type AvatarColor = "rose" | "blue" | "purple" | "teal" | "green" | "amber" | "coral";
 
 export interface UserStat {
   label: string;
@@ -27,14 +28,9 @@ export interface UserCardUser {
   joinedAt?: string;
   status?: UserStatus;
   userRole?: UserRole;
-  stats?: [UserStat, UserStat, UserStat]; // exactly 3 for stats variant
+  stats?: [UserStat, UserStat, UserStat];
   avatarColor?: AvatarColor;
-  openEditModal?: (userId: string) => void;
-  openViewModal?: (userId: string) => void;
-
 }
-
-export type AvatarColor = "rose" | "blue" | "purple" | "teal" | "green" | "amber" | "coral";
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -51,9 +47,10 @@ const AVATAR_COLORS: Record<AvatarColor, { bg: string; text: string }> = {
 };
 
 const STATUS_STYLES: Record<UserStatus, { badge: string; dot: string; label: string }> = {
-  active:  { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-400", label: "Active"  },
-  away:    { badge: "bg-amber-50   text-amber-700",   dot: "bg-amber-400",   label: "Away"    },
-  offline: { badge: "bg-gray-100   text-gray-500",    dot: "bg-gray-300",    label: "Offline" },
+  active:   { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-400", label: "Active"   },
+  away:     { badge: "bg-amber-50   text-amber-700",   dot: "bg-amber-400",   label: "Away"     },
+  offline:  { badge: "bg-gray-100   text-gray-500",    dot: "bg-gray-300",    label: "Offline"  },
+  inactive: { badge: "bg-gray-100   text-gray-500",    dot: "bg-gray-300",    label: "Inactive" },
 };
 
 const ROLE_BADGE: Record<UserRole, string> = {
@@ -66,13 +63,11 @@ const ROLE_BADGE: Record<UserRole, string> = {
 // Sub-components
 // ─────────────────────────────────────────────────────────────
 
-interface AvatarProps {
-  initials: string;
-  color?: AvatarColor;
-  size?: "sm" | "md" | "lg";
-}
-
-const Avatar: React.FC<AvatarProps> = ({ initials, color = "rose", size = "md" }) => {
+const Avatar: React.FC<{ initials: string; color?: AvatarColor; size?: "sm" | "md" | "lg" }> = ({
+  initials,
+  color = "rose",
+  size  = "md",
+}) => {
   const { bg, text } = AVATAR_COLORS[color];
   const dim = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-14 h-14 text-lg" }[size];
   return (
@@ -82,8 +77,7 @@ const Avatar: React.FC<AvatarProps> = ({ initials, color = "rose", size = "md" }
   );
 };
 
-interface StatusBadgeProps { status: UserStatus }
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+const StatusBadge: React.FC<{ status: UserStatus }> = ({ status }) => {
   const { badge, dot, label } = STATUS_STYLES[status];
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${badge}`}>
@@ -93,11 +87,9 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   );
 };
 
-interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary";
-  icon?: string;
-}
-const ActionButton: React.FC<ActionButtonProps> = ({ variant = "default", icon, children, className = "", ...rest }) => (
+const ActionButton: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary"; icon?: string }
+> = ({ variant = "default", icon, children, className = "", ...rest }) => (
   <button
     className={[
       "flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 text-[13px] rounded-lg",
@@ -147,9 +139,9 @@ const DefaultCard: React.FC<{ user: UserCardUser }> = ({ user }) => (
 
 const StatsCard: React.FC<{ user: UserCardUser }> = ({ user }) => {
   const stats = user.stats ?? [
-    { label: "Tasks", value: 0 },
-    { label: "Done",  value: "0%" },
-    { label: "Rating", value: 0 },
+    { label: "Tasks",  value: 0    },
+    { label: "Done",   value: "0%" },
+    { label: "Rating", value: 0    },
   ];
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
@@ -160,7 +152,6 @@ const StatsCard: React.FC<{ user: UserCardUser }> = ({ user }) => {
           <p className="text-[12px] text-gray-500 dark:text-gray-400 m-0">{user.role}</p>
         </div>
       </div>
-
       <div className="grid grid-cols-3 bg-gray-50 dark:bg-gray-800 rounded-lg py-2.5 px-1">
         {stats.map((s, i) => (
           <div key={i} className={`text-center ${i > 0 ? "border-l border-gray-200 dark:border-gray-700" : ""}`}>
@@ -169,7 +160,6 @@ const StatsCard: React.FC<{ user: UserCardUser }> = ({ user }) => {
           </div>
         ))}
       </div>
-
       <Divider />
       <div className="flex items-center justify-between">
         {user.location && (
@@ -188,37 +178,78 @@ const StatsCard: React.FC<{ user: UserCardUser }> = ({ user }) => {
   );
 };
 
-const CompactRow: React.FC<{ user: UserCardUser }> = ({ user }) => (
-  <div className="flex items-center gap-2.5 p-3 border-t border-gray-200 dark:border-gray-800 last:border-b"  onClick={() =>
-    user.openViewModal?.(user.id)
-  } >
-    <Avatar initials={user.initials} color={user.avatarColor} size="md" />
+// ─────────────────────────────────────────────────────────────
+// CompactRow — fix: onEdit comes in as a prop, not a free variable
+// ─────────────────────────────────────────────────────────────
+
+interface CompactRowProps {
+  user: UserCardUser;
+  onEdit?: (userId: string) => void;
+  onView?: (userId: string) => void;
+}
+
+const CompactRow: React.FC<CompactRowProps> = ({ user, onEdit, onView }) => (
+  <div
+    className="flex items-center gap-2.5 py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-1 transition-colors"
+    onClick={() => onView?.(user.id)}
+    role={onView ? "button" : undefined}
+    tabIndex={onView ? 0 : undefined}
+    onKeyDown={(e) => e.key === "Enter" && onView?.(user.id)}
+  >
+    <Avatar initials={user.initials} color={user.avatarColor} size="sm" />
     <div className="flex-1 min-w-0">
-      <p className="text-md font-medium text-gray-900 dark:text-gray-100 m-0 truncate capitalize">{user.name}</p>
+      <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 m-0 truncate">{user.name}</p>
       <p className="text-[11px] text-gray-400 dark:text-gray-500 m-0">{user.role}</p>
     </div>
     {user.status && <StatusBadge status={user.status} />}
-    <Button variant="secondary"   iconOnly iconLeft={<Edit size={12} />} size="xs" className="flex-shrink-0" onClick={(e) => {
-    e.stopPropagation();
-
-    user.openEditModal?.(user.id);
-  }}>
-      
-    </Button>
+    {onEdit && (
+      <Button
+        variant="secondary"
+        iconOnly
+        iconLeft={<Edit size={12} />}
+        size="xs"
+        className="flex-shrink-0"
+        aria-label={`Edit ${user.name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(user.id);
+        }}
+      />
+    )}
   </div>
 );
 
-interface CompactCardProps { users: UserCardUser[]; title?: string }
-const CompactCard: React.FC<CompactCardProps> = ({ users, title = "Team members" }) => (
-  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl  py-3">
-    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5 px-3">
+export interface CompactCardProps {
+  users: UserCardUser[];
+  title?: string;
+  onEdit?: (userId: string) => void;
+  onView?: (userId: string) => void;
+}
+
+export const CompactCard: React.FC<CompactCardProps> = ({
+  users,
+  title = "Team members",
+  onEdit,
+  onView,
+}) => (
+  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl px-4 py-3">
+    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5">
       {title}
     </p>
-    {users.map((u) => <CompactRow key={u.id} user={u} />)}
+    {users.map((u) => (
+      <CompactRow key={u.id} user={u} onEdit={onEdit} onView={onView} />
+    ))}
   </div>
 );
 
-const DetailedCard: React.FC<{ user: UserCardUser; onViewProfile?: () => void }> = ({ user, onViewProfile }) => (
+// ─────────────────────────────────────────────────────────────
+// DetailedCard
+// ─────────────────────────────────────────────────────────────
+
+const DetailedCard: React.FC<{ user: UserCardUser; onViewProfile?: () => void }> = ({
+  user,
+  onViewProfile,
+}) => (
   <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
     <div className="flex items-start justify-between mb-3">
       <div className="flex items-center gap-2.5">
@@ -228,7 +259,10 @@ const DetailedCard: React.FC<{ user: UserCardUser; onViewProfile?: () => void }>
           <p className="text-[12px] text-gray-500 dark:text-gray-400 m-0">{user.role}</p>
         </div>
       </div>
-      <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-0.5 bg-transparent border-none cursor-pointer" aria-label="More options">
+      <button
+        className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-0.5 bg-transparent border-none cursor-pointer"
+        aria-label="More options"
+      >
         <i className="ti ti-dots text-[18px]" aria-hidden="true" />
       </button>
     </div>
@@ -240,12 +274,8 @@ const DetailedCard: React.FC<{ user: UserCardUser; onViewProfile?: () => void }>
 
     <Divider />
     <div className="flex gap-2">
-      {user.email && (
-        <ActionButton icon="ti-mail" className="flex-none w-9 px-0" aria-label="Send email" />
-      )}
-      {user.phone && (
-        <ActionButton icon="ti-phone" className="flex-none w-9 px-0" aria-label="Call" />
-      )}
+      {user.email && <ActionButton icon="ti-mail"  className="flex-none w-9 px-0" aria-label="Send email" />}
+      {user.phone && <ActionButton icon="ti-phone" className="flex-none w-9 px-0" aria-label="Call" />}
       <ActionButton icon="ti-calendar" className="flex-none w-9 px-0" aria-label="Schedule" />
       <ActionButton variant="primary" icon="ti-eye" className="flex-[2]" onClick={onViewProfile}>
         View profile
@@ -272,13 +302,10 @@ export const UserCard: React.FC<UserCardProps> = ({
   onViewProfile,
 }) => {
   switch (variant) {
-    case "stats":    return <StatsCard user={user} />;
+    case "stats":    return <StatsCard    user={user} />;
     case "detailed": return <DetailedCard user={user} onViewProfile={onViewProfile} />;
-    default:         return <DefaultCard user={user} />;
+    default:         return <DefaultCard  user={user} />;
   }
 };
-
-// Separate export for compact list (takes multiple users)
-export { CompactCard };
 
 export default UserCard;
