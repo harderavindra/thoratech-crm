@@ -1,227 +1,207 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { X } from "lucide-react";
+import { useCreateUser, useUpdateUser } from "../modules/users/hooks/use-users";
 
-import axios from "axios";
+type ApiUser = {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+};
 
-import { createUser } from "../modules/users/services/user.service";
+type AddUserFormProps = {
+  mode?: "add" | "edit";
+  user?: ApiUser | null;
+  onClose?: () => void;
+};
 
-import { Input } from "../components/ui/input";
+const roles = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "TEAM_LEAD",
+  "AGENT",
+  "QA",
+];
 
-import { Label } from "../components/ui/label";
+export const AddUserForm = ({
+  mode = "add",
+  user,
+  onClose,
+}: AddUserFormProps) => {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("ADMIN");
+  const [status, setStatus] = useState("active");
+  const [password, setPassword] = useState("");
 
-import { Button } from "../components/ui/button";
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
 
-export const AddUserForm =
-  () => {
-    const [formData, setFormData] =
-      useState({
-        username: "",
-        fullName: "",
-        email: "",
-        phone: "",
-        password: "",
-        role: "AGENT",
-      });
+  const isPending = createUser.isPending || updateUser.isPending;
+  const error = createUser.error || updateUser.error;
 
-    const [message, setMessage] =
-      useState("");
+  useEffect(() => {
+    if (mode === "edit" && user) {
+      setFullName(user.fullName);
+      setEmail(user.email);
+      setPhone(user.phone ?? "");
+      setRole(user.role);
+      setStatus(user.status);
+    }
+  }, [mode, user]);
 
-    const [loading, setLoading] =
-      useState(false);
+  const getErrorMessage = (err: unknown): string => {
+    if (!err) return "";
+    const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+    const data = axiosError.response?.data;
+    if (data?.errors) {
+      return Object.values(data.errors).flat().join(", ");
+    }
+    return data?.message ?? "Something went wrong";
+  };
 
-    const handleChange = (
-      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-      setFormData({
-        ...formData,
-        [e.target.name]:
-          e.target.value,
-      });
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const handleSubmit =
-      async (
-        e: React.FormEvent
-      ) => {
-        e.preventDefault();
+    if (mode === "edit" && user) {
+      updateUser.mutate(
+        {
+          id: user._id,
+          payload: { fullName, email, phone, role, status },
+        },
+        { onSuccess: () => onClose?.() },
+      );
+    } else {
+      createUser.mutate(
+        { fullName, email, phone, password, role, status },
+        { onSuccess: () => onClose?.() },
+      );
+    }
+  };
 
-        try {
-          setLoading(true);
+  return (
+    <div className="w-full">
+      <div className="w-full rounded-2xl bg-white p-12 relative">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">
+              {mode === "edit" ? "Edit User" : "Add User"}
+            </h2>
 
-          setMessage("");
+            <p className="mt-1 text-sm text-gray-400">
+              {mode === "edit" ? "Update user information" : "Create a new user"}
+            </p>
+          </div>
 
-          const response =
-            await createUser(
-              formData
-            );
+          <Button
+            iconOnly
+            iconLeft={<X size={16} />}
+            size="sm"
+            variant="primary"
+            onClick={onClose}
+            className="absolute right-5 top-5"
+          />
+        </div>
 
-          setMessage(
-            response.message
-          );
-
-          setFormData({
-            username: "",
-            fullName: "",
-            email: "",
-            phone: "",
-            password: "",
-            role: "AGENT",
-          });
-        } catch (error) {
-          if (
-            axios.isAxiosError(
-              error
-            )
-          ) {
-            setMessage(
-              error.response
-                ?.data
-                ?.message ||
-                "Failed to create user"
-            );
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-
-    return (
-      <form
-        onSubmit={
-          handleSubmit
-        }
-        className="space-y-4 rounded-xl bg-white p-6 shadow"
-      >
-        <h2 className="text-xl font-bold">
-          Add User
-        </h2>
-
-        {message && (
-          <div className="rounded bg-gray-100 px-4 py-3 text-sm">
-            {message}
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {getErrorMessage(error)}
           </div>
         )}
 
-        <div>
-          <Label>
-            Username
-          </Label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Full Name</label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter full name"
+              required
+            />
+          </div>
 
-          <Input
-            name="username"
-            value={
-              formData.username
-            }
-            onChange={
-              handleChange
-            }
-          />
-        </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Email</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email"
+              required
+            />
+          </div>
 
-        <div>
-          <Label>
-            Full Name
-          </Label>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Phone</label>
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter phone number"
+              required
+            />
+          </div>
 
-          <Input
-            name="fullName"
-            value={
-              formData.fullName
-            }
-            onChange={
-              handleChange
-            }
-          />
-        </div>
+          {mode === "add" && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                required
+              />
+            </div>
+          )}
 
-        <div>
-          <Label>
-            Email
-          </Label>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-4 py-3 outline-none focus:border-black"
+            >
+              {roles.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <Input
-            type="email"
-            name="email"
-            value={
-              formData.email
-            }
-            onChange={
-              handleChange
-            }
-          />
-        </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-4 py-3 outline-none focus:border-black"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
 
-        <div>
-          <Label>
-            Phone
-          </Label>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
 
-          <Input
-            name="phone"
-            value={
-              formData.phone
-            }
-            onChange={
-              handleChange
-            }
-          />
-        </div>
-
-        <div>
-          <Label>
-            Password
-          </Label>
-
-          <Input
-            type="password"
-            name="password"
-            value={
-              formData.password
-            }
-            onChange={
-              handleChange
-            }
-          />
-        </div>
-
-        <div>
-          <Label>
-            Role
-          </Label>
-
-          <select
-            name="role"
-            value={
-              formData.role
-            }
-            onChange={
-              handleChange
-            }
-            className="w-full rounded-lg border border-gray-300 px-4 py-3"
-          >
-            <option value="ADMIN">
-              ADMIN
-            </option>
-
-            <option value="TEAM_LEAD">
-              TEAM_LEAD
-            </option>
-
-            <option value="AGENT">
-              AGENT
-            </option>
-
-            <option value="QA">
-              QA
-            </option>
-          </select>
-        </div>
-
-        <Button
-          type="submit"
-          loading={loading}
-        >
-          Create User
-        </Button>
-      </form>
-    );
-  };
+            <Button type="submit" variant="primary" disabled={isPending}>
+              {isPending
+                ? "Saving..."
+                : mode === "edit"
+                ? "Update User"
+                : "Create User"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

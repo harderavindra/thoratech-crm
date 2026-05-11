@@ -15,14 +15,14 @@ export interface AvatarProps {
   src?: string;
   alt?: string;
   size?: AvatarSize;
-  color?: AvatarColor;
+  AvatarColor?: AvatarColor;
   /** Presence dot badge */
   status?: AvatarStatus;
   className?: string;
 }
 
 export interface AvatarGroupProps {
-  avatars: Pick<AvatarProps, "initials" | "src" | "alt" | "color">[];
+  avatars: Pick<AvatarProps, "initials" | "src" | "alt" | "AvatarColor">[];
   size?: AvatarSize;
   /** Max visible before "+N" overflow */
   max?: number;
@@ -80,12 +80,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   src,
   alt,
   size  = "md",
-  color = "rose",
+  AvatarColor = "rose",
   status,
   className = "",
 }) => {
   const { dim, text, iconSize, dot } = SIZE_MAP[size];
-  const { bg, text: textColor, ring }  = COLOR_MAP[color] ?? COLOR_MAP.gray;
+  const { bg, text: textColor, ring }  = COLOR_MAP[AvatarColor] ?? COLOR_MAP.gray;
 
   return (
     <div className={`relative inline-flex shrink-0 ${className}`}>

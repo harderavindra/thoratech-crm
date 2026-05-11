@@ -23,6 +23,7 @@ export const protect = (
   next: NextFunction
 ) => {
   try {
+    console.log("req.cookies", req.cookies);
     const token =
       req.cookies?.accessToken;
 

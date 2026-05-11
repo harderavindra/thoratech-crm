@@ -100,7 +100,7 @@ export const AdminLayout = () => {
         </div>
       </aside>
 
-      <main className="flex-1 bg-gray-100 p-6">
+      <main className="flex-1 flex bg-gray-50 p-6 rounded-2xl ">
         <Outlet />
       </main>
     </div>
