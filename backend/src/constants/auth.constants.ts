@@ -7,4 +7,4 @@ export const MAX_ATTEMPTS =
   5;
 
 export const COOKIE_MAX_AGE_MS =
-  30 * 60 * 1000;
+  60 * 60 * 1000;

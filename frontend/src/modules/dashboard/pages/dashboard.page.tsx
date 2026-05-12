@@ -1,42 +1,28 @@
 import { useHealth } from "../../../hooks/useHealth";
+import { PageHeader } from "../../../components/ui/page-header";
+import { Spinner } from "../../../components/ui/loader";
+import { Alert } from "../../../components/ui/alert";
 
 export const DashboardPage = () => {
   const { data, isLoading, error } = useHealth();
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="mb-6 text-2xl font-bold">
-          Thoratech CRM
-        </h1>
+      <PageHeader title="Dashboard" />
+      <div className="w-full max-w-md rounded-xl bg-white p-8">
+        <h2 className="mb-4 text-lg font-semibold">Backend Status</h2>
 
-        <div className="rounded bg-gray-100 p-4">
-          <h2 className="mb-2 font-semibold">
-            Backend Status
-          </h2>
-
+        <div className="rounded-lg bg-gray-50 p-4">
           {isLoading && (
-            <p className="text-gray-500">
-              Loading...
-            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Spinner size={16} />
+              Checking connection…
+            </div>
           )}
-
-          {error && (
-            <p className="text-red-500">
-              API Connection Failed
-            </p>
-          )}
-
-          {data && (
-            <p className="text-green-600">
-              {data.message}
-            </p>
-          )}
+          {error && <Alert variant="error">API connection failed</Alert>}
+          {data && <Alert variant="success">{data.message}</Alert>}
         </div>
       </div>
-    </div>
     </div>
   );
 };

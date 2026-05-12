@@ -10,7 +10,7 @@ export const signToken = (
   payload: object
 ) => {
   const options: SignOptions = {
-    expiresIn: "30m",
+    expiresIn: "60m",
   };
 
   return jwt.sign(

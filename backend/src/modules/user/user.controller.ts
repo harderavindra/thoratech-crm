@@ -13,7 +13,7 @@ import { escapeRegex } from "../../utils/escape-regex";
 // canManage: roles this actor may edit or delete.
 const ROLE_PERMISSIONS: Record<string, { canCreate: string[]; canManage: string[] }> = {
   SUPER_ADMIN: {
-    canCreate: ["SUPER_ADMIN", "ADMIN", "TEAM_LEAD", "AGENT", "QA"],
+    canCreate: ["ADMIN", "TEAM_LEAD", "AGENT", "QA"],
     canManage: ["SUPER_ADMIN", "ADMIN", "TEAM_LEAD", "AGENT", "QA"],
   },
   ADMIN: {
@@ -222,6 +222,16 @@ export const createUser = async (
         success: false,
         message: `You are not permitted to create a user with role ${role}`,
       });
+    }
+
+    if (role === "SUPER_ADMIN") {
+      const superAdminExists = await User.findOne({ role: "SUPER_ADMIN", deletedAt: null });
+      if (superAdminExists) {
+        return res.status(409).json({
+          success: false,
+          message: "A Super Admin already exists",
+        });
+      }
     }
 
     const existingUser = await User.findOne({

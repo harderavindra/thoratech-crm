@@ -10,6 +10,10 @@ import { useUpdateProfile, useChangePassword } from "../hooks/use-profile";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import Avatar from "../../../components/ui/avatar";
+import { PageHeader } from "../../../components/ui/page-header";
+import { Alert } from "../../../components/ui/alert";
+import { Spinner } from "../../../components/ui/loader";
+import { useToast } from "../../../components/ui/toast";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -64,6 +68,7 @@ const EditProfileForm = ({
   initialPhone: string;
   onClose: () => void;
 }) => {
+  const toast = useToast();
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone]       = useState(initialPhone);
   const [errors, setErrors]     = useState<FieldErrors>({});
@@ -82,7 +87,7 @@ const EditProfileForm = ({
   const handleSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
     if (!validate()) return;
-    updateProfile.mutate({ fullName, phone }, { onSuccess: onClose });
+    updateProfile.mutate({ fullName, phone }, { onSuccess: () => { toast.success("Profile updated"); onClose(); } });
   };
 
   return (
@@ -95,9 +100,7 @@ const EditProfileForm = ({
         </div>
       </div>
 
-      {apiError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</div>
-      )}
+      {apiError && <Alert variant="error" className="mb-4">{apiError}</Alert>}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <Input
@@ -131,11 +134,11 @@ const EditProfileForm = ({
 // ─────────────────────────────────────────────────────────────
 
 const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
+  const toast = useToast();
   const [current,  setCurrent]  = useState("");
   const [next,     setNext]     = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [errors,   setErrors]   = useState<FieldErrors>({});
-  const [success,  setSuccess]  = useState(false);
 
   const changePassword = useChangePassword();
   const apiError = (changePassword.error as any)?.response?.data?.message ?? "";
@@ -156,9 +159,8 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
       { currentPassword: current, newPassword: next },
       {
         onSuccess: () => {
-          setCurrent(""); setNext(""); setConfirm("");
-          setSuccess(true);
-          setTimeout(onClose, 1200);
+          toast.success("Password changed successfully.");
+          onClose();
         },
       },
     );
@@ -174,15 +176,7 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
         </div>
       </div>
 
-      {success && (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          Password changed successfully.
-        </div>
-      )}
-
-      {apiError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</div>
-      )}
+      {apiError && <Alert variant="error" className="mb-4">{apiError}</Alert>}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {[
@@ -220,7 +214,7 @@ export const ProfilePage = () => {
   const authUser  = useAuthStore((s) => s.user);
   const [panel, setPanel] = useState<Panel>(null);
 
-  const { data, isLoading } = useUserById(authUser?.id ?? null);
+  const { data, isLoading, isError } = useUserById(authUser?.id ?? null);
   const user = data?.data?.user;
 
   const fullName = user?.fullName ?? authUser?.fullName ?? "";
@@ -237,10 +231,7 @@ export const ProfilePage = () => {
   return (
     <div className="flex flex-col flex-1">
 
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Profile</h1>
-      </div>
+      <PageHeader title="Profile" />
 
       <div className="flex gap-1 flex-1">
 
@@ -265,7 +256,12 @@ export const ProfilePage = () => {
             </div>
           </div>
 
-          {isLoading && <p className="text-center text-xs text-gray-400 animate-pulse mb-4">Loading…</p>}
+          {isLoading && (
+            <div className="flex justify-center mb-4">
+              <Spinner size={18} />
+            </div>
+          )}
+          {isError && <Alert variant="error" className="mb-4">Failed to load profile data.</Alert>}
 
           {/* Contact */}
           <SectionLabel>Contact</SectionLabel>

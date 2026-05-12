@@ -5,6 +5,8 @@ import { Input } from "./ui/input";
 import { useCreateUser, useUpdateUser } from "../modules/users/hooks/use-users";
 import { useAuthStore } from "../modules/auth/store/auth.store";
 import { getCreatableRoles } from "../utils/role-permissions";
+import { Alert } from "./ui/alert";
+import { useToast } from "./ui/toast";
 
 // ← shared type, not re-declared locally
 import type { ApiUser, UserRole, UserStatus } from "../types/user.types";
@@ -85,6 +87,7 @@ function parseApiError(err: unknown): { global: string; fields: FieldErrors } {
 // ─────────────────────────────────────────────────────────────
 
 export const AddUserForm = ({ mode = "add", user, onClose }: AddUserFormProps) => {
+  const toast        = useToast();
   const actorRole   = useAuthStore((s) => s.user?.role ?? "");
   const allowedRoles = getCreatableRoles(actorRole);
   const canEditRole  = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
@@ -152,12 +155,12 @@ export const AddUserForm = ({ mode = "add", user, onClose }: AddUserFormProps) =
     if (mode === "edit" && user) {
       updateUser.mutate(
         { id: user._id, payload: { fullName: form.fullName, phone: form.phone, role: form.role } },
-        { onSuccess: () => onClose?.() },
+        { onSuccess: () => { toast.success("User updated"); onClose?.(); } },
       );
     } else {
       createUser.mutate(
         { fullName: form.fullName, email: form.email, phone: form.phone, password: form.password, role: form.role, status: form.status },
-        { onSuccess: () => onClose?.() },
+        { onSuccess: () => { toast.success("User created"); onClose?.(); } },
       );
     }
   };
@@ -191,12 +194,7 @@ export const AddUserForm = ({ mode = "add", user, onClose }: AddUserFormProps) =
           />
         </div>
 
-        {/* Global API error */}
-        {globalError && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {globalError}
-          </div>
-        )}
+        {globalError && <Alert variant="error" className="mb-4">{globalError}</Alert>}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
 

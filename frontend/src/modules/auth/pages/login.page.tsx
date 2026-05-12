@@ -117,6 +117,7 @@ export const LoginPage =
               label=""
               type="email"
               placeholder="Enter email"
+              autoComplete="email"
               error={errors.email?.message}
               {...register("email")}
             />
@@ -125,6 +126,7 @@ export const LoginPage =
               label=""
               type="password"
               placeholder="Enter password"
+              autoComplete="current-password"
               error={errors.password?.message}
               {...register("password")}
             />

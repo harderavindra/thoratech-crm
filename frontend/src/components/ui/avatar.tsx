@@ -5,7 +5,7 @@ import React from "react";
 // ─────────────────────────────────────────────────────────────
 
 export type AvatarSize   = "xs" | "sm" | "md" | "lg" | "xl";
-export type AvatarColor  = "rose" | "blue" | "amber" | "green" | "gray";
+export type AvatarColor  = "rose" | "blue" | "purple" | "teal" | "green" | "amber" | "coral" | "gray";
 export type AvatarStatus = "online" | "away" | "offline";
 
 export interface AvatarProps {
@@ -42,11 +42,14 @@ const SIZE_MAP: Record<AvatarSize, { dim: string; text: string; iconSize: number
 };
 
 const COLOR_MAP: Record<AvatarColor, { bg: string; text: string; ring: string }> = {
-  rose:  { bg: "bg-rose-50",    text: "text-rose-500",    ring: "ring-1 ring-rose-200"    },
-  blue:  { bg: "bg-blue-50",    text: "text-blue-600",    ring: "ring-1 ring-blue-200"    },
-  amber: { bg: "bg-amber-50",   text: "text-amber-600",   ring: "ring-1 ring-amber-200"   },
-  green: { bg: "bg-emerald-50", text: "text-emerald-600", ring: "ring-1 ring-emerald-200" },
-  gray:  { bg: "bg-gray-100",   text: "text-gray-500",    ring: "ring-1 ring-gray-200"    },
+  rose:   { bg: "bg-rose-600",    text: "text-rose-50",    ring: "ring-1 ring-rose-200"    },
+  blue:   { bg: "bg-blue-600",    text: "text-blue-50",    ring: "ring-1 ring-blue-200"    },
+  purple: { bg: "bg-violet-600",  text: "text-violet-50",  ring: "ring-1 ring-violet-200"  },
+  teal:   { bg: "bg-teal-600",    text: "text-teal-50",    ring: "ring-1 ring-teal-200"    },
+  green:  { bg: "bg-emerald-600", text: "text-emerald-50", ring: "ring-1 ring-emerald-200" },
+  amber:  { bg: "bg-amber-600",   text: "text-amber-50",   ring: "ring-1 ring-amber-200"   },
+  coral:  { bg: "bg-orange-600",  text: "text-orange-50",  ring: "ring-1 ring-orange-200"  },
+  gray:   { bg: "bg-gray-300",    text: "text-gray-50",    ring: "ring-1 ring-gray-200"    },
 };
 
 const STATUS_DOT: Record<AvatarStatus, string> = {

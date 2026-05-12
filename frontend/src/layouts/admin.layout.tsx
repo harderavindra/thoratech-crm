@@ -3,6 +3,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { logoutUser } from "../modules/auth/services/auth.service";
 
 import { useAuthStore } from "../modules/auth/store/auth.store";
+import { useIdleLogout } from "../modules/auth/hooks/use-idle-logout";
 import {
   ContactRound,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import Avatar from "../components/ui/avatar";
 import { useState } from "react";
 
 export const AdminLayout = () => {
+  useIdleLogout();
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);

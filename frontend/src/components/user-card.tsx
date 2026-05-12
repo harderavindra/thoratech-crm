@@ -1,6 +1,9 @@
 import React from "react";
 import Button from "./ui/button";
 import { Archive, Edit, Lock } from "lucide-react";
+import type { AvatarColor } from "./ui/avatar";
+
+export type { AvatarColor };
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -9,7 +12,6 @@ import { Archive, Edit, Lock } from "lucide-react";
 export type UserStatus  = "active" | "away" | "offline" | "inactive";
 export type UserRole    = "admin" | "member" | "guest" | (string & {});
 export type CardVariant = "default" | "stats" | "compact" | "detailed";
-export type AvatarColor = "rose" | "blue" | "purple" | "teal" | "green" | "amber" | "coral";
 
 export interface UserStat {
   label: string;
@@ -39,13 +41,14 @@ export interface UserCardUser {
 // ─────────────────────────────────────────────────────────────
 
 const AVATAR_COLORS: Record<AvatarColor, { bg: string; text: string }> = {
-  rose:   { bg: "bg-rose-50",    text: "text-rose-500"    },
-  blue:   { bg: "bg-blue-50",    text: "text-blue-700"    },
-  purple: { bg: "bg-violet-50",  text: "text-violet-700"  },
-  teal:   { bg: "bg-teal-50",    text: "text-teal-700"    },
-  green:  { bg: "bg-emerald-50", text: "text-emerald-700" },
-  amber:  { bg: "bg-amber-50",   text: "text-amber-700"   },
-  coral:  { bg: "bg-orange-50",  text: "text-orange-700"  },
+  rose:   { bg: "bg-rose-800",    text: "text-rose-50"    },
+  blue:   { bg: "bg-blue-800",    text: "text-blue-50"    },
+  purple: { bg: "bg-violet-600",  text: "text-violet-50"  },
+  teal:   { bg: "bg-teal-600",    text: "text-teal-50"    },
+  green:  { bg: "bg-emerald-600", text: "text-emerald-50" },
+  amber:  { bg: "bg-amber-600",   text: "text-amber-50"   },
+  coral:  { bg: "bg-orange-600",  text: "text-orange-50"  },
+  gray:   { bg: "bg-gray-400",    text: "text-gray-50"    },
 };
 
 const STATUS_STYLES: Record<UserStatus, { badge: string; dot: string; label: string }> = {

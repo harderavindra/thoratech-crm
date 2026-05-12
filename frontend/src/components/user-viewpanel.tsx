@@ -23,7 +23,8 @@ import {
 } from "../modules/users/hooks/use-users";
 import { useAuthStore } from "../modules/auth/store/auth.store";
 import type { ApiUser, UserStatus } from "../types/user.types";
-import type { AvatarColor } from "./ui/avatar";
+import { avatarColorFromId } from "../utils/avatar-color";
+import { useToast } from "./ui/toast";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -123,8 +124,6 @@ interface UserViewPanelProps {
 // Component
 // ─────────────────────────────────────────────────────────────
 
-const AVATAR_COLOR: AvatarColor = "blue";
-
 export const UserViewPanel = ({
   listUser,
   onClose,
@@ -132,6 +131,7 @@ export const UserViewPanel = ({
   onRefresh,
   onDeleted,
 }: UserViewPanelProps) => {
+  const toast = useToast();
   const { data, isLoading } = useUserById(listUser._id);
   const user: ApiUser = data?.data?.user ?? listUser;
   const updateUser = useUpdateUser();
@@ -170,6 +170,9 @@ export const UserViewPanel = ({
         !!user.createdBy &&
         String(user.createdBy) === actorId));
 
+  const handleError = (err: unknown) =>
+    toast.error((err as any)?.response?.data?.message ?? "Something went wrong");
+
   const handleConfirm = (reason?: string, comment?: string) => {
     if (!confirmAction) return;
 
@@ -179,9 +182,11 @@ export const UserViewPanel = ({
         {
           onSuccess: () => {
             setConfirmAction(null);
+            toast.success("User deleted");
             onDeleted?.();
             onClose();
           },
+          onError: handleError,
         },
       );
       return;
@@ -194,8 +199,10 @@ export const UserViewPanel = ({
       {
         onSuccess: () => {
           setConfirmAction(null);
+          toast.success(confirmAction === "activate" ? "User activated" : "User deactivated");
           onRefresh?.();
         },
+        onError: handleError,
       },
     );
   };
@@ -218,7 +225,7 @@ export const UserViewPanel = ({
         <Avatar
           size="xl"
           initials={getInitials(user.fullName)}
-          AvatarColor={AVATAR_COLOR}
+          AvatarColor={avatarColorFromId(listUser._id)}
         />
         <div>
           <p className="text-2xl font-bold m-0 capitalize">{user.fullName}</p>

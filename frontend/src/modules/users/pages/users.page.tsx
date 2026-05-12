@@ -10,6 +10,9 @@ import { Button } from "../../../components/ui/button";
 import { SearchInput } from "../../../components/ui/search";
 import { CompactCard } from "../../../components/user-card";
 import { useAuthStore } from "../../auth/store/auth.store";
+import { PageHeader } from "../../../components/ui/page-header";
+import { PageLoader, Spinner } from "../../../components/ui/loader";
+import { Alert } from "../../../components/ui/alert";
 
 
 
@@ -19,6 +22,7 @@ import { UserViewPanel } from "../../../components/user-viewpanel";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { getInitials } from "../../../utils/get-initials";
 import { toTitleCase } from "../../../utils/to-title-case"
+import { avatarColorFromId } from "../../../utils/avatar-color"
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
@@ -59,7 +63,7 @@ export const UsersPage = () => {
   const [modal,        setModal]        = useState<Modal>(null);
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
 
-  const { data, isLoading } = useUsers({ page, limit: 10, search, role, status, archived, refreshKey });
+  const { data, isLoading, isFetching, isError } = useUsers({ page, limit: 10, search, role, status, archived, refreshKey });
 
   const users: ApiUser[] = data?.data?.users      ?? [];
   const pagination       = data?.data?.pagination;
@@ -139,7 +143,7 @@ export const UsersPage = () => {
     status:     u.status as "active" | "away" | "offline",
     isLocked:   !!u.lockoutUntil && new Date(u.lockoutUntil) > new Date(),
     isArchived: !!u.deletedAt,
-    avatarColor: "blue" as const,
+    avatarColor: avatarColorFromId(u._id),
   }));
 
   const handleRefresh = () => setRefreshKey((k) => k + 1);
@@ -191,15 +195,16 @@ export const UsersPage = () => {
   return (
     <div className="flex flex-col flex-1">
 
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Users</h1>
-        {canCreate && !archived && (
-          <Button iconOnly variant="primary" onClick={openAdd} aria-label="Add user">
-            <Plus />
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Users"
+        action={
+          canCreate && !archived ? (
+            <Button iconOnly variant="primary" onClick={openAdd} aria-label="Add user">
+              <Plus />
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="flex gap-1 flex-1">
 
@@ -263,13 +268,16 @@ export const UsersPage = () => {
 
         {/* ── User list ── */}
         <div className="min-w-xs overflow-hidden px-4 flex flex-col gap-2">
-          <SearchInput
-            placeholder="Search users..."
-            value={search}
-            onChange={(value) => { setPage(1); setSearch(value); }}
-            onClear={() => { setPage(1); setSearch(""); }}
-            className="border-white"
-          />
+          <div className="flex items-center gap-2">
+            <SearchInput
+              placeholder="Search users..."
+              value={search}
+              onChange={(value) => { setPage(1); setSearch(value); }}
+              onClear={() => { setPage(1); setSearch(""); }}
+              className="border-white flex-1"
+            />
+            {isFetching && !isLoading && <Spinner size={16} />}
+          </div>
 
           {role && status === "active" && (
             <div className="flex items-center px-1">
@@ -281,9 +289,9 @@ export const UsersPage = () => {
           )}
 
           {isLoading ? (
-            <div className="flex min-h-[200px] items-center justify-center">
-              <p className="px-4 py-6 text-center text-gray-400">Loading...</p>
-            </div>
+            <PageLoader />
+          ) : isError ? (
+            <Alert variant="error">Failed to load users. Please try again.</Alert>
           ) : users.length === 0 ? (
             <EmptyState
               icon={emptyState.icon}
