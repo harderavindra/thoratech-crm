@@ -10,10 +10,15 @@ export const getUsers = (params: {
   search: string;
   role: string;
   status: string;
-}) =>
-  api
-    .get<{ success: boolean; data: PaginatedUsers }>("/users", { params })
+  archived?: boolean;
+  refreshKey?: number;
+}) => {
+  const { archived, refreshKey: _rk, ...rest } = params;
+  const query = archived ? { ...rest, archived: true } : rest;
+  return api
+    .get<{ success: boolean; data: PaginatedUsers }>("/users", { params: query })
     .then((r) => r.data);
+};
 
 export const getUserById = (id: string) =>
   api
@@ -41,8 +46,8 @@ export const updateUser = (
     .then((r) => r.data);
 
 
-    export const deleteUser = (id: string) =>
+export const deleteUser = (id: string, payload: { reason: string; comment?: string }) =>
   api
-    .delete<{ success: boolean; message: string }>(`/users/${id}`)
+    .delete<{ success: boolean; message: string }>(`/users/${id}`, { data: payload })
     .then((r) => r.data);
  

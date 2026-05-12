@@ -7,7 +7,8 @@ export const useUsers = (params: {
   search: string;
   role: string;
   status: string;
-   refreshKey?: number;  
+  archived?: boolean;
+  refreshKey?: number;
 }) =>
   useQuery({
     queryKey: ["users", params],
@@ -46,7 +47,8 @@ export const useUpdateUser = () => {
 export const useDeleteUser = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteUser(id),
+    mutationFn: ({ id, reason, comment }: { id: string; reason: string; comment?: string }) =>
+      deleteUser(id, { reason, comment }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 };

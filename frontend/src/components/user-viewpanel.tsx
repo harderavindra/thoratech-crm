@@ -1,12 +1,26 @@
 import { useState } from "react";
 import {
-  Mail, Phone, UserCog, UserRoundCheck,
-  X, Calendar, Clock, Trash2, ToggleLeft, ToggleRight,
+  Mail,
+  Phone,
+  UserCog,
+  UserRoundCheck,
+  X,
+  Calendar,
+  Clock,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Archive,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import Avatar from "./ui/avatar";
 import { ConfirmDialog } from "./confirmation-dialog";
-import { useUserById, useUpdateUser, useDeleteUser } from "../modules/users/hooks/use-users";
+import {
+  useUserById,
+  useUpdateUser,
+  useDeleteUser,
+} from "../modules/users/hooks/use-users";
 import { useAuthStore } from "../modules/auth/store/auth.store";
 import type { ApiUser, UserStatus } from "../types/user.types";
 import type { AvatarColor } from "./ui/avatar";
@@ -16,25 +30,55 @@ import type { AvatarColor } from "./ui/avatar";
 // ─────────────────────────────────────────────────────────────
 
 const toTitleCase = (str: string) =>
-  str.toLowerCase().split(/[_\s-]+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  str
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
 const getInitials = (name: string) =>
-  name.trim().split(/\s+/).filter(Boolean).slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() ?? "").join("") || "?";
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase() ?? "")
+    .join("") || "?";
 
 const formatDate = (iso?: string) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso
+    ? new Date(iso).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
 const formatDateTime = (iso?: string) =>
-  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  iso
+    ? new Date(iso).toLocaleString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
 
 // ─────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────
 
-const MetaRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
-  <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+const MetaRow = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="flex w-full  gap-3 py-2.5 border-b border-gray-100 ">
     <span className="mt-0.5 text-gray-400 shrink-0">{icon}</span>
     <div className="flex-1 min-w-0">
       <p className="text-[11px] text-gray-400 m-0 mb-0.5">{label}</p>
@@ -55,14 +99,22 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 
 type ConfirmAction = "activate" | "deactivate" | "delete" | null;
 
+const DELETE_REASONS = [
+  "Resigned / Left company",
+  "Terminated",
+  "Duplicate account",
+  "Test / Demo account",
+  "Other",
+];
+
 // ─────────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────────
 
 interface UserViewPanelProps {
   listUser: ApiUser;
-  onClose:    () => void;
-  onEdit:     () => void;
+  onClose: () => void;
+  onEdit: () => void;
   onRefresh?: () => void;
   onDeleted?: () => void;
 }
@@ -73,54 +125,76 @@ interface UserViewPanelProps {
 
 const AVATAR_COLOR: AvatarColor = "blue";
 
-export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted }: UserViewPanelProps) => {
-  const { data, isLoading }  = useUserById(listUser._id);
-  const user: ApiUser        = data?.data?.user ?? listUser;
-  const updateUser           = useUpdateUser();
-  const deleteUser           = useDeleteUser();
+export const UserViewPanel = ({
+  listUser,
+  onClose,
+  onEdit,
+  onRefresh,
+  onDeleted,
+}: UserViewPanelProps) => {
+  const { data, isLoading } = useUserById(listUser._id);
+  const user: ApiUser = data?.data?.user ?? listUser;
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
 
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const currentUser = useAuthStore((s) => s.user);
-  const actorRole   = currentUser?.role;
-  const actorId     = currentUser?.id;
+  const actorRole = currentUser?.role;
+  const actorId = currentUser?.id;
 
-  const isLocked     = !!user.lockoutUntil && new Date(user.lockoutUntil) > new Date();
-  const isActive     = user.status === "active";
+  const isLocked =
+    !!user.lockoutUntil && new Date(user.lockoutUntil) > new Date();
+  const isActive = user.status === "active";
+  const isArchived = !!user.deletedAt;
   const isSuperAdmin = user.role === "SUPER_ADMIN";
-  const isPending    = updateUser.isPending || deleteUser.isPending;
+  const isPending = updateUser.isPending || deleteUser.isPending;
 
-  const canEdit         = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
-  const canDelete       = !isSuperAdmin && (
-    actorRole === "SUPER_ADMIN" || (actorRole === "ADMIN" && !!user.createdBy && String(user.createdBy) === actorId) ||
-    (actorRole === "TEAM_LEAD" && !!user.createdBy && String(user.createdBy) === actorId)
-  );
-  const canToggleStatus = !isSuperAdmin && (
-    actorRole === "SUPER_ADMIN" || (actorRole === "ADMIN" && !!user.createdBy && String(user.createdBy) === actorId) ||
-    (actorRole === "TEAM_LEAD" && !!user.createdBy && String(user.createdBy) === actorId)
-  );
+  const canEdit = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
+  const canDelete =
+    !isSuperAdmin &&
+    (actorRole === "SUPER_ADMIN" ||
+      (actorRole === "ADMIN" &&
+        !!user.createdBy &&
+        String(user.createdBy) === actorId) ||
+      (actorRole === "TEAM_LEAD" &&
+        !!user.createdBy &&
+        String(user.createdBy) === actorId));
+  const canToggleStatus =
+    !isSuperAdmin &&
+    (actorRole === "SUPER_ADMIN" ||
+      (actorRole === "ADMIN" &&
+        !!user.createdBy &&
+        String(user.createdBy) === actorId) ||
+      (actorRole === "TEAM_LEAD" &&
+        !!user.createdBy &&
+        String(user.createdBy) === actorId));
 
-  const handleConfirm = () => {
+  const handleConfirm = (reason?: string, comment?: string) => {
     if (!confirmAction) return;
 
     if (confirmAction === "delete") {
-      deleteUser.mutate(user._id, {
-        onSuccess: () => {
-          setConfirmAction(null);
-          onDeleted?.();
-          onClose();
+      deleteUser.mutate(
+        { id: user._id, reason: reason!, comment },
+        {
+          onSuccess: () => {
+            setConfirmAction(null);
+            onDeleted?.();
+            onClose();
+          },
         },
-      });
+      );
       return;
     }
 
-    const newStatus: UserStatus = confirmAction === "activate" ? "active" : "inactive";
+    const newStatus: UserStatus =
+      confirmAction === "activate" ? "active" : "inactive";
     updateUser.mutate(
       { id: user._id, payload: { status: newStatus } },
       {
         onSuccess: () => {
           setConfirmAction(null);
-          onRefresh?.();           // ← refetch list immediately
+          onRefresh?.();
         },
       },
     );
@@ -128,11 +202,12 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
 
   return (
     <div className="relative h-full w-full rounded-2xl bg-white p-8 overflow-y-auto">
-
       {/* ── Close ── */}
       <Button
-        iconOnly iconLeft={<X size={16} />}
-        size="sm" variant="primary"
+        iconOnly
+        iconLeft={<X size={16} />}
+        size="sm"
+        variant="primary"
         onClick={onClose}
         className="absolute right-5 top-5"
         aria-label="Close"
@@ -140,15 +215,32 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
 
       {/* ── Avatar + name ── */}
       <div className="flex items-center gap-4 mb-6">
-        <Avatar size="xl" initials={getInitials(user.fullName)} AvatarColor={AVATAR_COLOR} />
+        <Avatar
+          size="xl"
+          initials={getInitials(user.fullName)}
+          AvatarColor={AVATAR_COLOR}
+        />
         <div>
-          <p className="text-2xl font-bold m-0">{user.fullName}</p>
-          {user.username && <p className="text-sm text-gray-400 m-0">@{user.username}</p>}
+          <p className="text-2xl font-bold m-0 capitalize">{user.fullName}</p>
+          {user.username && (
+            <p className="text-sm text-gray-400 m-0">@{user.username}</p>
+          )}
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
-            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-400" : "bg-gray-300"}`} />
-              {toTitleCase(user.status)}
-            </span>
+            {isArchived ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">
+                <Archive size={10} />
+                Archived
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-400" : "bg-gray-300"}`}
+                />
+                {toTitleCase(user.status)}
+              </span>
+            )}
             <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
               {toTitleCase(user.role)}
             </span>
@@ -157,47 +249,140 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
                 Locked
               </span>
             )}
-            {isLoading && <span className="text-[11px] text-gray-400 animate-pulse">Loading…</span>}
+            {isLoading && (
+              <span className="text-[11px] text-gray-400 animate-pulse">
+                Loading…
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       {/* ── Contact ── */}
       <SectionLabel>Contact</SectionLabel>
-      <MetaRow icon={<Mail size={15} />} label="Email" value={<a href={`mailto:${user.email}`} className="text-blue-600 hover:underline">{user.email}</a>} />
-      <MetaRow icon={<Phone size={15} />} label="Phone" value={user.phone || "—"} />
-
+      <div className="flex w-full">
+        <MetaRow
+          icon={<Mail size={15} />}
+          label="Email"
+          value={
+            <a
+              href={`mailto:${user.email}`}
+              className="text-blue-600 hover:underline"
+            >
+              {user.email}
+            </a>
+          }
+        />
+        <MetaRow
+          icon={<Phone size={15} />}
+          label="Phone"
+          value={user.phone || "—"}
+        />
+      </div>
       {/* ── Role & access ── */}
       <SectionLabel>Role & access</SectionLabel>
-      <MetaRow icon={<UserCog size={15} />} label="Role" value={toTitleCase(user.role)} />
-      <MetaRow icon={<UserRoundCheck size={15} />} label="Status" value={toTitleCase(user.status)} />
-
+    <div className="flex">
+      <MetaRow
+        icon={<UserCog size={15} />}
+        label="Role"
+        value={toTitleCase(user.role)}
+      />
+      <MetaRow
+        icon={<UserRoundCheck size={15} />}
+        label="Status"
+        value={toTitleCase(user.status)}
+      />
+    </div>
       {/* ── Activity ── */}
       <SectionLabel>Activity</SectionLabel>
-      <MetaRow icon={<Calendar size={15} />} label="Joined" value={formatDate(user.createdAt)} />
-      {user.lastLogin && <MetaRow icon={<Clock size={15} />} label="Last login" value={formatDateTime(user.lastLogin)} />}
+            <div className="flex w-full">
+
+      <MetaRow
+        icon={<Calendar size={15} />}
+        label="Joined"
+        value={formatDate(user.createdAt)}
+      />
+      {user.lastLogin && (
+        <MetaRow
+          icon={<Clock size={15} />}
+          label="Last login"
+          value={formatDateTime(user.lastLogin)}
+        />
+      )}
+      </div>
+            <div className="flex w-full">
+
       {typeof user.loginAttempts === "number" && user.loginAttempts > 0 && (
-        <MetaRow icon={<UserRoundCheck size={15} />} label="Failed login attempts" value={<span className="text-red-500 font-medium">{user.loginAttempts}</span>} />
+        <MetaRow
+          icon={<UserRoundCheck size={15} />}
+          label="Failed login attempts"
+          value={
+            <span className="text-red-500 font-medium">
+              {user.loginAttempts}
+            </span>
+          }
+        />
       )}
       {isLocked && user.lockoutUntil && (
-        <MetaRow icon={<Clock size={15} />} label="Locked until" value={<span className="text-red-500">{formatDateTime(user.lockoutUntil)}</span>} />
+        <MetaRow
+          icon={<Clock size={15} />}
+          label="Locked until"
+          value={
+            <span className="text-red-500">
+              {formatDateTime(user.lockoutUntil)}
+            </span>
+          }
+        />
       )}
+</div>
+     
 
-      {/* ── Edit action ── */}
-      {canEdit && (
-        <div className="mt-6 flex gap-3">
-          <Button variant="secondary" onClick={onEdit}>Edit User</Button>
-        </div>
+      {/* ════════════════════════════════════════════════════════
+          Archive details (archived users only)
+      ════════════════════════════════════════════════════════ */}
+      {isArchived && (
+        <>
+          <SectionLabel>Archive details</SectionLabel>
+          <div className="rounded-xl border border-orange-200 overflow-hidden">
+            <div className="flex items-center gap-3 p-4 bg-orange-50">
+              <Archive size={18} className="text-orange-400 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-orange-800 m-0">This user has been archived</p>
+                <p className="text-xs text-orange-500 m-0 mt-0.5">{formatDateTime(user.deletedAt ?? undefined)}</p>
+              </div>
+            </div>
+            {user.deleteReason && (
+              <div className="px-4 py-1 border-t border-orange-100">
+                <MetaRow
+                  icon={<Archive size={15} />}
+                  label="Reason"
+                  value={user.deleteReason}
+                />
+                {user.deleteComment && (
+                  <MetaRow
+                    icon={<MessageSquare size={15} />}
+                    label="Comment"
+                    value={user.deleteComment}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* ════════════════════════════════════════════════════════
           Status section
       ════════════════════════════════════════════════════════ */}
-      {canToggleStatus && (
+      {!isArchived && canToggleStatus && (
         <>
-          <SectionLabel>{isActive ? "Deactivate User" : "Activate User"}</SectionLabel>
+          <SectionLabel>
+            {isActive ? "Deactivate User" : "Activate User"}
+          </SectionLabel>
 
-          <div className={`rounded-xl border overflow-hidden ${isActive ? "border-amber-200" : "border-emerald-200"}`}>
+          <div
+            className={`rounded-xl border overflow-hidden ${isActive ? "border-amber-200" : "border-emerald-200"}`}
+          >
             <div className="p-5">
               <p className="text-base font-semibold text-gray-900 m-0 mb-1">
                 {isActive ? "Deactivate User" : "Activate User"}
@@ -208,13 +393,29 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
                   : "Restores this user's access. They will be able to log in immediately."}
               </p>
             </div>
-            <div className={`flex items-center justify-between px-5 py-3 border-t ${isActive ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+            <div
+              className={`flex items-center justify-between px-5 py-3 border-t ${isActive ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}
+            >
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                {isActive ? <ToggleRight size={16} className="text-amber-500" /> : <ToggleLeft size={16} className="text-emerald-500" />}
-                <span>Currently <strong>{toTitleCase(user.status)}</strong></span>
+                {isActive ? (
+                  <ToggleRight size={16} className="text-amber-500" />
+                ) : (
+                  <ToggleLeft size={16} className="text-emerald-500" />
+                )}
+                <span>
+                  Currently <strong>{toTitleCase(user.status)}</strong>
+                </span>
               </div>
               <button
-                onClick={() => setConfirmAction(confirmAction === (isActive ? "deactivate" : "activate") ? null : (isActive ? "deactivate" : "activate"))}
+                onClick={() =>
+                  setConfirmAction(
+                    confirmAction === (isActive ? "deactivate" : "activate")
+                      ? null
+                      : isActive
+                        ? "deactivate"
+                        : "activate",
+                  )
+                }
                 className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
                   isActive
                     ? "bg-amber-500 hover:bg-amber-600 text-white border-transparent"
@@ -231,16 +432,18 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
       {/* ════════════════════════════════════════════════════════
           Delete section
       ════════════════════════════════════════════════════════ */}
-      {canDelete && (
+      {!isArchived && canDelete && (
         <>
           <SectionLabel>Delete User</SectionLabel>
 
           <div className="rounded-xl border border-red-200 overflow-hidden">
             <div className="p-5">
-              <p className="text-base font-semibold text-gray-900 m-0 mb-1">Delete User</p>
+              <p className="text-base font-semibold text-gray-900 m-0 mb-1">
+                Delete User
+              </p>
               <p className="text-sm text-gray-500 m-0">
-                Permanently delete this user and all associated data, sessions, and activity logs.
-                This action cannot be undone.
+                Permanently delete this user and all associated data, sessions,
+                and activity logs. This action cannot be undone.
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 px-5 py-3 bg-red-50 border-t border-red-200">
@@ -291,11 +494,12 @@ export const UserViewPanel = ({ listUser, onClose, onEdit, onRefresh, onDeleted 
         open={confirmAction === "delete"}
         variant="danger"
         title="Delete User"
-        description="Permanently delete this user and all associated data, sessions, and activity logs. This action cannot be undone."
+        description="This user will be archived and hidden from all lists. This action can only be reversed by a Super Admin."
         keyword="delete"
         confirmLabel="Delete User"
         previewName={user.fullName}
         previewInitials={getInitials(user.fullName)}
+        reasonOptions={DELETE_REASONS}
         isPending={isPending}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}

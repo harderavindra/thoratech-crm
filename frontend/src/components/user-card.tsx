@@ -1,6 +1,6 @@
 import React from "react";
 import Button from "./ui/button";
-import { Edit } from "lucide-react";
+import { Archive, Edit, Lock } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -30,6 +30,8 @@ export interface UserCardUser {
   userRole?: UserRole;
   stats?: [UserStat, UserStat, UserStat];
   avatarColor?: AvatarColor;
+  isLocked?: boolean;
+  isArchived?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -190,18 +192,31 @@ interface CompactRowProps {
 
 const CompactRow: React.FC<CompactRowProps> = ({ user, onEdit, onView }) => (
   <div
-    className="flex items-center gap-2.5 py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-1 transition-colors"
+    className={`relative flex items-center gap-2.5 py-1.5 px-2 border last:border-0 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition-colors ${user.isLocked ? "border-red-300 bg-red-50" : user.isArchived ? "border-orange-200 bg-orange-50" : "border-gray-100 dark:border-gray-800"}`}
     onClick={() => onView?.(user.id)}
     role={onView ? "button" : undefined}
     tabIndex={onView ? 0 : undefined}
     onKeyDown={(e) => e.key === "Enter" && onView?.(user.id)}
   >
+    {user.isLocked && (
+      <span className="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white">
+        <Lock size={9} />
+      </span>
+    )}
+    {user.isArchived && (
+      <span className="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-orange-400 text-white">
+        <Archive size={9} />
+      </span>
+    )}
     <Avatar initials={user.initials} color={user.avatarColor} size="sm" />
     <div className="flex-1 min-w-0">
       <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 m-0 truncate">{user.name}</p>
       <p className="text-[11px] text-gray-400 dark:text-gray-500 m-0">{user.role}</p>
     </div>
-    {user.status && <StatusBadge status={user.status} />}
+    {user.isArchived
+      ? <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-orange-50 text-orange-600">Archived</span>
+      : user.status && <StatusBadge status={user.status} />
+    }
     {onEdit && (
       <Button
         variant="secondary"
@@ -228,14 +243,14 @@ export interface CompactCardProps {
 
 export const CompactCard: React.FC<CompactCardProps> = ({
   users,
-  title = "Team members",
+  title = "",
   onEdit,
   onView,
 }) => (
-  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl px-4 py-3">
-    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5">
+  <div className="flex flex-col gap-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl px-4 py-3">
+    {/* <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5">
       {title}
-    </p>
+    </p> */}
     {users.map((u) => (
       <CompactRow key={u.id} user={u} onEdit={onEdit} onView={onView} />
     ))}

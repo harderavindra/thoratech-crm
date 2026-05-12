@@ -23,7 +23,9 @@ export interface ConfirmDialogProps {
   /** Preview card shown inside the dialog */
   previewName: string;
   previewInitials: string;
-  onConfirm: () => void;
+  /** When provided, shows a reason dropdown (required) + comment textarea (optional) */
+  reasonOptions?: string[];
+  onConfirm: (reason?: string, comment?: string) => void;
   onCancel: () => void;
 }
 
@@ -68,18 +70,29 @@ export const ConfirmDialog = ({
   isPending = false,
   previewName,
   previewInitials,
+  reasonOptions,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
   const [typed, setTyped] = useState("");
+  const [reason, setReason] = useState("");
+  const [comment, setComment] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const v = VARIANT[variant];
+  const hasReasonField = !!reasonOptions?.length;
   const isMatch = typed.trim().toLowerCase() === keyword.toLowerCase();
+  const canConfirm = isMatch && (!hasReasonField || reason !== "");
+
+  const handleConfirm = () => {
+    onConfirm(hasReasonField ? reason : undefined, hasReasonField ? comment : undefined);
+  };
 
   // Reset input every time dialog opens
   useEffect(() => {
     if (open) {
       setTyped("");
+      setReason("");
+      setComment("");
       // Small delay so the portal has mounted before focusing
       setTimeout(() => inputRef.current?.focus(), 50);
     }
@@ -155,18 +168,40 @@ export const ConfirmDialog = ({
         </div>
 
         {/* Keyword input */}
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-4">
           <Input
             ref={inputRef}
             placeholder={`Type "${keyword}" to confirm`}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            // state={isMatch && typed.length > 0 ? "success" : "default"}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
           />
         </div>
+
+        {/* Reason + comment (delete flow) */}
+        {hasReasonField && (
+          <div className="px-5 pb-5 flex flex-col gap-2">
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-red-200"
+            >
+              <option value="">Select a reason…</option>
+              {reasonOptions!.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Additional comments (optional)"
+              rows={2}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-red-200"
+            />
+          </div>
+        )}
 
         {/* Footer */}
         <div
@@ -182,8 +217,8 @@ export const ConfirmDialog = ({
           </Button>
 
           <button
-            disabled={!isMatch || isPending}
-            onClick={onConfirm}
+            disabled={!canConfirm || isPending}
+            onClick={handleConfirm}
             className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 text-[13px] font-medium rounded-lg border border-transparent transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${v.btn}`}
           >
             {isPending ? "Please wait…" : confirmLabel}

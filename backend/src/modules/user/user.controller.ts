@@ -36,6 +36,8 @@ const usersQuerySchema = z.object({
   role: z.string().trim().optional(),
 
   status: z.string().trim().optional(),
+
+  archived: z.preprocess((v) => v === "true" || v === true, z.boolean()).default(false),
 });
 
 export const getUsers = async (
@@ -56,11 +58,13 @@ export const getUsers = async (
       });
     }
 
-    const { page, limit, search, role, status } = parsed.data;
+    const { page, limit, search, role, status, archived } = parsed.data;
 
     const skip = (page - 1) * limit;
 
-    const match: Record<string, unknown> = {};
+    const match: Record<string, unknown> = archived
+      ? { deletedAt: { $ne: null } }
+      : { deletedAt: null };
 
     if (role) {
       match.role = role;
@@ -134,6 +138,10 @@ export const getUsers = async (
                 createdBy: 1,
 
                 createdAt: 1,
+
+                lockoutUntil: 1,
+
+                deletedAt: 1,
               },
             },
           ],
@@ -392,6 +400,10 @@ export const getUserById =
           passwordChangedAt
           loginAttempts
           lockoutUntil
+          deletedAt
+          deletedBy
+          deleteReason
+          deleteComment
         `
         );
 
@@ -420,27 +432,65 @@ export const getUserById =
     }
   };
 
-  export const deleteUser =
-  async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const user = await User.findById(req.params.id);
+const deleteUserSchema = z.object({
+  reason: z.string().trim().min(1).max(200),
+  comment: z.string().trim().max(500).optional(),
+});
 
-      if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
-      }
-
-      if (user.role === "SUPER_ADMIN") {
-        return res.status(403).json({ success: false, message: "Super admin cannot be deleted" });
-      }
-
-      await user.deleteOne();
-
-      return res.status(200).json({ success: true, message: "User deleted successfully" });
-    } catch (error) {
-      next(error);
+export const deleteUser = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const parsed = deleteUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Reason is required",
+        errors: parsed.error.flatten().fieldErrors,
+      });
     }
-  };
+
+    const { reason, comment } = parsed.data;
+
+    const user = await User.findById(req.params.id).select("role createdBy deletedAt");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.deletedAt) {
+      return res.status(409).json({ success: false, message: "User is already archived" });
+    }
+
+    if (user.role === "SUPER_ADMIN") {
+      return res.status(403).json({ success: false, message: "Super admin cannot be deleted" });
+    }
+
+    const actorRole = req.user!.role;
+    const actorId   = req.user!.id;
+    const perms     = ROLE_PERMISSIONS[actorRole];
+
+    if (!perms?.canManage.includes(user.role)) {
+      return res.status(403).json({ success: false, message: "You are not permitted to delete this user" });
+    }
+
+    if (actorRole === "TEAM_LEAD" && String(user.createdBy) !== actorId) {
+      return res.status(403).json({ success: false, message: "You can only delete users you created" });
+    }
+
+    await User.findByIdAndUpdate(req.params.id, {
+      $set: {
+        deletedAt:     new Date(),
+        deletedBy:     req.user!.id,
+        deleteReason:  reason,
+        deleteComment: comment || null,
+        status:        "inactive",
+      },
+    });
+
+    return res.status(200).json({ success: true, message: "User archived successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

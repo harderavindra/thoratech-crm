@@ -27,6 +27,9 @@ export interface ApiUser {
   passwordChangedAt?: string;
   loginAttempts?: number;
   lockoutUntil?: string;
+  deletedAt?: string | null;
+  deleteReason?: string | null;
+  deleteComment?: string | null;
 }
 
 export interface Pagination {

@@ -41,6 +41,11 @@ export interface IUser extends Document {
   lockoutUntil?: Date | null;
   createdAt: Date;
 
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId | null;
+  deleteReason?: string | null;
+  deleteComment?: string | null;
+
   comparePassword: (candidate: string) => Promise<boolean>;
 
   isPasswordReused: (candidate: string) => Promise<boolean>;
@@ -115,6 +120,11 @@ const userSchema = new Schema<IUser>(
 
     lockoutUntil: { type: Date, default: null },
     createdAt: { type: Date, default: Date.now },
+
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    deleteReason: { type: String, default: null },
+    deleteComment: { type: String, default: null },
   },
 
   {
