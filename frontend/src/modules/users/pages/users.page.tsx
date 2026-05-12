@@ -63,7 +63,7 @@ export const UsersPage = () => {
   const [modal,        setModal]        = useState<Modal>(null);
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
 
-  const { data, isLoading, isFetching, isError } = useUsers({ page, limit: 10, search, role, status, archived, refreshKey });
+  const { data, isLoading, isFetching, isError } = useUsers({ page, limit: 3, search, role, status, archived, refreshKey });
 
   const users: ApiUser[] = data?.data?.users      ?? [];
   const pagination       = data?.data?.pagination;
