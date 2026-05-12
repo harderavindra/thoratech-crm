@@ -34,7 +34,7 @@ const formatDateTime = (iso?: string) =>
 // ─────────────────────────────────────────────────────────────
 
 const MetaRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
-  <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+  <div className="flex items-start gap-3 py-2.5 border-b border-gray-100  flex-1">
     <span className="mt-0.5 text-gray-400 shrink-0">{icon}</span>
     <div className="flex-1 min-w-0">
       <p className="text-[11px] text-gray-400 mb-0.5">{label}</p>
@@ -86,13 +86,13 @@ const EditProfileForm = ({
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white p-12">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="w-full rounded-2xl bg-white p-12 relative">
+        <Button iconOnly iconLeft={<X size={16} />} size="sm" variant="primary" onClick={onClose} className="absolute -right-2 -top-2" aria-label="Close" />
+      <div className="mb-6 flex items-center justify-between " >
         <div>
           <h2 className="text-2xl font-bold">Edit Profile</h2>
           <p className="mt-1 text-sm text-gray-400">Update your name and phone number</p>
         </div>
-        <Button iconOnly iconLeft={<X size={16} />} size="sm" variant="primary" onClick={onClose} className="absolute right-5 top-5" aria-label="Close" />
       </div>
 
       {apiError && (
@@ -100,17 +100,22 @@ const EditProfileForm = ({
       )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Full Name</label>
-          <Input value={fullName} onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: undefined })); }} placeholder="Enter full name" aria-invalid={!!errors.fullName} />
-          {errors.fullName && <p className="mt-1 text-[12px] text-red-500">{errors.fullName}</p>}
-        </div>
+        <Input
+          label="Full Name"
+          value={fullName}
+          onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: undefined })); }}
+          placeholder="Enter full name"
+          error={errors.fullName}
+        />
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone</label>
-          <Input type="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }} placeholder="Enter phone number" aria-invalid={!!errors.phone} />
-          {errors.phone && <p className="mt-1 text-[12px] text-red-500">{errors.phone}</p>}
-        </div>
+        <Input
+          label="Phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
+          placeholder="Enter phone number"
+          error={errors.phone}
+        />
 
         <div className="flex justify-end gap-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
@@ -160,13 +165,13 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white p-12">
+    <div className="w-full rounded-2xl bg-white p-12 relative">
+        <Button iconOnly iconLeft={<X size={16} />} size="sm" variant="primary" onClick={onClose} className="absolute -right-2 -top-2" aria-label="Close" />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Change Password</h2>
           <p className="mt-1 text-sm text-gray-400">Must be at least 10 characters with uppercase, lowercase, number and special character</p>
         </div>
-        <Button iconOnly iconLeft={<X size={16} />} size="sm" variant="primary" onClick={onClose} className="absolute right-5 top-5" aria-label="Close" />
       </div>
 
       {success && (
@@ -185,17 +190,15 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
           { label: "New Password",     value: next,    set: setNext,    key: "next"    },
           { label: "Confirm Password", value: confirm, set: setConfirm, key: "confirm" },
         ].map(({ label, value, set, key }) => (
-          <div key={key}>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
-            <Input
-              type="password"
-              value={value}
-              onChange={(e) => { set(e.target.value); setErrors((p) => ({ ...p, [key]: undefined })); }}
-              placeholder="••••••••"
-              aria-invalid={!!(errors as any)[key]}
-            />
-            {(errors as any)[key] && <p className="mt-1 text-[12px] text-red-500">{(errors as any)[key]}</p>}
-          </div>
+          <Input
+            key={key}
+            label={label}
+            type="password"
+            value={value}
+            onChange={(e) => { set(e.target.value); setErrors((p) => ({ ...p, [key]: undefined })); }}
+            placeholder="••••••••"
+            error={(errors as any)[key]}
+          />
         ))}
 
         <div className="flex justify-end gap-3 pt-4">
@@ -242,7 +245,7 @@ export const ProfilePage = () => {
       <div className="flex gap-1 flex-1">
 
         {/* ── Left: profile info card ── */}
-        <div className="w-72 shrink-0 rounded-2xl bg-white p-8 overflow-y-auto">
+        <div className=" rounded-2xl bg-white p-8 overflow-y-auto flex-1">
 
           {/* Avatar + name */}
           <div className="flex flex-col items-center text-center gap-3 mb-6">
@@ -266,29 +269,43 @@ export const ProfilePage = () => {
 
           {/* Contact */}
           <SectionLabel>Contact</SectionLabel>
+                <div className="flex w-full">
+
           <MetaRow icon={<Mail size={15} />} label="Email" value={<a href={`mailto:${authUser?.email}`} className="text-blue-600 hover:underline">{authUser?.email}</a>} />
           <MetaRow icon={<Phone size={15} />} label="Phone" value={phone || "—"} />
-
+</div>
           {/* Role & access */}
           <SectionLabel>Role & access</SectionLabel>
+                <div className="flex w-full">
+
           <MetaRow icon={<ShieldCheck size={15} />} label="Role" value={toTitleCase(authUser?.role ?? "")} />
           <MetaRow icon={<UserRoundCheck size={15} />} label="Status" value={toTitleCase(authUser?.status ?? "")} />
-
+</div>
           {/* Activity */}
           {user && (
             <>
               <SectionLabel>Activity</SectionLabel>
+                    <div className="flex w-full">
+
               <MetaRow icon={<Calendar size={15} />} label="Joined" value={formatDate(user.createdAt)} />
               {user.lastLogin && <MetaRow icon={<Clock size={15} />} label="Last login" value={formatDateTime(user.lastLogin)} />}
+              </div>
             </>
           )}
 
-          {/* Actions */}
-          <div className="mt-6 flex flex-col gap-2">
+         
+
+        </div>
+
+        {/* ── Right: form panel ── */}
+        <div className="relative flex-1  px-8  ">
+           {/* Actions */}
+          <div className=" flex gap-10 pb-10">
             <Button
               variant={panel === "edit" ? "primary" : "secondary"}
               iconLeft={<Pencil size={14} />}
               onClick={() => setPanel((p) => p === "edit" ? null : "edit")}
+              className="w-full"
             >
               Edit Profile
             </Button>
@@ -296,15 +313,11 @@ export const ProfilePage = () => {
               variant={panel === "password" ? "primary" : "secondary"}
               iconLeft={<KeyRound size={14} />}
               onClick={() => setPanel((p) => p === "password" ? null : "password")}
+              className="w-full"
             >
               Change Password
             </Button>
           </div>
-
-        </div>
-
-        {/* ── Right: form panel ── */}
-        <div className="flex-1 relative">
           {panel === "edit" && (
             <EditProfileForm
               initialFullName={fullName}

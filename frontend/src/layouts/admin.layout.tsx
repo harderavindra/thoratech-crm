@@ -41,28 +41,26 @@ export const AdminLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen p-5 gap-5 bg-gray-100 ">
-      <aside className="flex w-20 flex-col justify-between bg-white p-4 text-gray-800 rounded-2xl ">
+    <div className="flex min-h-screen p-5 gap-5 bg-gray-100 relative ">
+      <aside className="flex w-16 flex-col justify-between bg-white py-4 text-gray-800 rounded-2xl max-h-[calc(100vh-40px)] sticky top-5 -y-5 ">
         <div className="flex flex-col items-center gap-4">
           <Logo size="md" showWordmark={false} />
 
           <nav className="space-y-3">
-            <Link to="/" className="block rounded px-3 py-2 hover:bg-white/10">
+            <Link to="/" className="block rounded  py-2 hover:bg-white/10">
               <LayoutDashboard />
             </Link>
 
-            {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN") && (
-              <Link
-                to="/users"
-                className="block rounded px-3 py-2 hover:bg-white/10"
-              >
-                <Users />
-              </Link>
-            )}
+            <Link
+              to="/users"
+              className="block rounded  py-2 hover:bg-white/10"
+            >
+              <Users />
+            </Link>
 
             <Link
               to="/profile"
-              className="block rounded px-3 py-2 hover:bg-white/10"
+              className="block rounded  py-2 hover:bg-white/10"
             >
               <ContactRound />
             </Link>
@@ -102,7 +100,7 @@ export const AdminLayout = () => {
         </div>
       </aside>
 
-      <main className="flex-1 flex bg-gray-50 p-6 rounded-2xl ">
+      <main className="flex-1 bg-gray-50 p-6 rounded-2xl">
         <Outlet />
       </main>
     </div>

@@ -201,50 +201,46 @@ export const AddUserForm = ({ mode = "add", user, onClose }: AddUserFormProps) =
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
           {/* Full name */}
-          <Field label="Full Name" error={errors.fullName}>
-            <Input
-              value={form.fullName}
-              onChange={(e) => set("fullName", e.target.value)}
-              placeholder="Enter full name"
-              aria-invalid={!!errors.fullName}
-            />
-          </Field>
+          <Input
+            label="Full Name"
+            value={form.fullName}
+            onChange={(e) => set("fullName", e.target.value)}
+            placeholder="Enter full name"
+            error={errors.fullName}
+          />
 
           {/* Email — add mode only */}
           {mode === "add" && (
-            <Field label="Email" error={errors.email}>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="Enter email"
-                aria-invalid={!!errors.email}
-              />
-            </Field>
+            <Input
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="Enter email"
+              error={errors.email}
+            />
           )}
 
           {/* Phone */}
-          <Field label="Phone" error={errors.phone}>
-            <Input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="Enter phone number"
-              aria-invalid={!!errors.phone}
-            />
-          </Field>
+          <Input
+            label="Phone"
+            type="tel"
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="Enter phone number"
+            error={errors.phone}
+          />
 
           {/* Password — add mode only */}
           {mode === "add" && (
-            <Field label="Password" error={errors.password}>
-              <Input
-                type="password"
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                placeholder="Min. 8 characters"
-                aria-invalid={!!errors.password}
-              />
-            </Field>
+            <Input
+              label="Password"
+              type="password"
+              value={form.password}
+              onChange={(e) => set("password", e.target.value)}
+              placeholder="Min. 8 characters"
+              error={errors.password}
+            />
           )}
 
           {/* Role — hidden for TEAM_LEAD in edit mode (they can only change status) */}

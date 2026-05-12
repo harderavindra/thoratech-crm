@@ -17,11 +17,10 @@ import { loginUser } from "../services/auth.service";
 
 import { useAuthStore } from "../store/auth.store";
 
-import { Label } from "../../../components/ui/label";
-
 import { Input } from "../../../components/ui/input";
 
 import { Button } from "../../../components/ui/button";
+import Logo from "../../../components/ui/logo";
 
 export const LoginPage =
   () => {
@@ -91,10 +90,10 @@ export const LoginPage =
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
-        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 ">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold">
-              Thoratech CRM
+            <h1 className="text-3xl font-bold text-center flex items-center justify-center">
+              <Logo size="lg" showWordmark={false}  />
             </h1>
 
             <p className="mt-2 text-sm text-gray-500">
@@ -114,65 +113,29 @@ export const LoginPage =
               </div>
             )}
 
-            <div>
-              <Label>
-                Email
-              </Label>
+            <Input
+              label=""
+              type="email"
+              placeholder="Enter email"
+              error={errors.email?.message}
+              {...register("email")}
+            />
 
-              <Input
-                type="email"
-                placeholder="Enter email"
-                error={
-                  !!errors.email
-                }
-                {...register(
-                  "email"
-                )}
-              />
-
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">
-                  {
-                    errors
-                      .email
-                      .message
-                  }
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label>
-                Password
-              </Label>
-
-              <Input
-                type="password"
-                placeholder="Enter password"
-                error={
-                  !!errors.password
-                }
-                {...register(
-                  "password"
-                )}
-              />
-
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">
-                  {
-                    errors
-                      .password
-                      .message
-                  }
-                </p>
-              )}
-            </div>
+            <Input
+              label=""
+              type="password"
+              placeholder="Enter password"
+              error={errors.password?.message}
+              {...register("password")}
+            />
 
             <Button
               type="submit"
+               variant="primary"
               loading={
                 isSubmitting
               }
+              className="w-full"
             >
               Sign In
             </Button>
