@@ -127,7 +127,7 @@ interface UserViewPanelProps {
 export const UserViewPanel = ({
   listUser,
   onClose,
-  onEdit,
+  
   onRefresh,
   onDeleted,
 }: UserViewPanelProps) => {
@@ -150,7 +150,6 @@ export const UserViewPanel = ({
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const isPending = updateUser.isPending || deleteUser.isPending;
 
-  const canEdit = actorRole === "SUPER_ADMIN" || actorRole === "ADMIN";
   const canDelete =
     !isSuperAdmin &&
     (actorRole === "SUPER_ADMIN" ||

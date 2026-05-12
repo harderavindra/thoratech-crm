@@ -251,9 +251,9 @@ export const CompactCard: React.FC<CompactCardProps> = ({
   onView,
 }) => (
   <div className="flex flex-col gap-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl px-4 py-3">
-    {/* <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5">
+    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 m-0 mb-2.5 hide">
       {title}
-    </p> */}
+    </p>
     {users.map((u) => (
       <CompactRow key={u.id} user={u} onEdit={onEdit} onView={onView} />
     ))}
